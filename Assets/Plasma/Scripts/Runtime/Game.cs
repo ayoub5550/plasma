@@ -192,13 +192,12 @@ namespace Plasma
             switch (_hintStage)
             {
                 case 0: _ui.Hint(Loc.T("hint_drag"), new Vector2(0.5f, 0.24f), 2.2f, false); _hintStage = 1; _hintClock = 0; break;
-                case 1:
-                    if (_hintClock > 2.0f && sim.GateAvailable && sim.GateIndex == 0)
-                    { _ui.Hint(Loc.T("hint_gate"), new Vector2(0.36f, 0.66f), 3f, true); _hintStage = 2; _hintClock = 0; }
-                    else if (sim.GateIndex > 0) _hintStage = 2;
+                case 1:   // v0.4: the belt pays from the start -> first teach "stand by the numbers"
+                    if (_hintClock > 2.0f) { _ui.Hint(Loc.T("hint_collect"), new Vector2(0.44f, 0.4f), 3.2f, true); _hintStage = 2; _hintClock = 0; }
                     break;
                 case 2:
-                    if (sim.ConveyorValue > 0 && _hintClock > 0.5f) { _ui.Hint(Loc.T("hint_collect"), new Vector2(0.3f, 0.36f), 3f, true); _hintStage = 3; _hintClock = 0; }
+                    if (_hintClock > 3.4f && sim.GateAvailable) { _ui.Hint(Loc.T("hint_gate"), new Vector2(0.42f, 0.7f), 3f, true); _hintStage = 3; _hintClock = 0; }
+                    else if (sim.GateIndex > 0) { _hintStage = 3; _hintClock = 0; }
                     break;
                 case 3:
                     if (sim.AliveEnemies > 0 && sim.FrontZ() < 7f && _hintClock > 1f) { _ui.Hint(Loc.T("hint_horde"), new Vector2(0.62f, 0.5f), 2.5f, true); _hintStage = 4; _hintClock = 0; }

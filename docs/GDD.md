@@ -8,7 +8,7 @@
 You command a squad of blue soldiers at the bottom of a deck. A red horde marches down the right
 bridge with a sword-wielding boss inside it. On the left, a **conveyor of "+N" tiles** slides toward
 you — stand next to its end to collect them and grow. At the far edge of the deck an **upgrade gate**
-inflates: shoot it down and **every tile on the belt is upgraded** (+0 → +1 → +5 → … → +99).
+inflates: shoot it down and **every tile on the belt is upgraded** (+1 → +5 → … → +99; the belt starts at +1 since v0.4).
 Your squad fires automatically; you only slide it left and right.
 
 The core tension in one sentence: **every second spent upgrading or collecting is a second the horde marches unopposed.**
@@ -47,7 +47,7 @@ and procedural. Never copy characters, logos or art from the reference.
 ### 3.2 The three spots
 | Spot | Squad x | What happens |
 |---|---|---|
-| **Belt end** (far left) | left-most soldier within `ConvMaxX + 0.55` | every arriving tile (≈2.8/s) adds `round(value × TileBonus)` soldiers; bullets partly hit the gate |
+| **Belt end** (far left) — glowing **collect pad** with chevrons on the deck | left-most soldier within `ConvMaxX + 0.75` (v0.4: was 0.55) | every arriving tile (≈2.8/s) adds exactly the number printed on it (`round(value × TileBonus)` — tiles, gate and badge all print this effective value since v0.4); bullets partly hit the gate |
 | **Dock** (left-centre) | ≈ −1.75 | bullets hit the upgrade gate |
 | **Horde lane** (right) | 0 … 4.25 | bullets kill the horde / boss |
 
@@ -61,7 +61,9 @@ and procedural. Never copy characters, logos or art from the reference.
 ### 3.4 Upgrade gate (dock) and conveyor
 * Each level has a **ladder** of 3–6 gates, geometric from +1 to the level's jackpot (L1: +1 → +5 → +20; boss
   levels reach +50/+99 early). Breaking a gate sets the belt value; the next gate inflates (0.75 s, not shootable).
-* The belt starts at **+0** (grey tiles worth nothing), exactly like the reference.
+* Since v0.4 the belt starts at **+1** (`Balance.StartTileValue`): owner request "the player gets soldiers for standing in front of the numbers" —
+  standing at the belt pays from the first second. (v0.2–0.3 started at +0 like the ad; with one soldier at the belt end you could not
+  even hit the first gate, so standing there gave nothing.) Gates whose value ≤ the belt value are skipped (L1 ladder: +5 → +20).
 * Gate HP = `(4 + 9·(v−1))·(1 + 0.06·t)`.
 
 ### 3.5 Horde (right lane)

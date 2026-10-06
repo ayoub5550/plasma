@@ -22,7 +22,8 @@ namespace Plasma.Sim
         public const float ConvSpacing = 1.3f;       // distance between tiles
         public const float ConvSpeed = 3.6f;         // units/s toward the player (~2.8 tiles/s)
         public const float ConvEndZ = 0.35f;         // tiles are collected (or fall off) here
-        public const float CatchReach = 0.55f;       // left-most soldier must be within ConvMaxX + reach
+        public const float CatchReach = 0.75f;       // left-most soldier must be within ConvMaxX + reach (v0.4: 0.55 -> 0.75, more forgiving)
+        public const int StartTileValue = 1;         // v0.4: the belt pays from the first second (owner: "soldiers for standing in front of the numbers")
 
         // Dock: the slot at the far edge of the deck where the upgrade gate inflates.
         // Breaking the gate upgrades every tile on the conveyor to the gate's value.

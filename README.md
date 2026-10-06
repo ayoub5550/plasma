@@ -5,13 +5,13 @@
 ## بالعربية
 
 **بلازما** لعبة أندرويد بمستويات لا نهائية، مبنية على آلية فيديو الإعلان المرجعي (`docs/reference/`). فرقتك تطلق النار تلقائياً، وأنت تسحبها يميناً ويساراً فقط:
-- **البوابة المنتفخة** في أعلى الساحة: أطلق عليها حتى تنفجر، فتتحول كل بطاقات **الشريط** إلى قيمتها (+0 ← +1 ← +5 ← … ← +99).
+- **البوابة المنتفخة** في أعلى الساحة: أطلق عليها حتى تنفجر، فتتحول كل بطاقات **الشريط** إلى قيمتها (+1 ← +5 ← … ← +99، والشريط يبدأ من +1 منذ الإصدار 0.4).
 - **الشريط** على اليسار يحمل بطاقات "+N" نحوك: قف عند نهايته لتجمعها، فتكبر فرقتك.
 - **الحشد الأحمر** يزحف على اليمين ومعه **زعيم** بسيف ضخم: أوقفه قبل أن يصل إليك. كل خامس مستوى زعيم عملاق.
 - 4 ترقيات دائمة، ووضع **بلا نهاية**، وواجهة **عربية وإنجليزية**، وإعدادات للأصوات والموسيقى والاهتزاز والرسوميات (عالية: ظلال حقيقية ووهج / منخفضة للهواتف الضعيفة)، وشرح تفاعلي في أول مستويين.
 - شخصيات ثلاثية الأبعاد مجانية الترخيص (CC0) من Kenney وQuaternius.
 
-الحالة: **v0.3.1** (شخصيات خاصة بنا مصنوعة في Blender) (نسخة تجريبية APK). خطة التطوير في [`docs/ROADMAP.md`](docs/ROADMAP.md)، وتصميم اللعبة في [`docs/GDD.md`](docs/GDD.md)، والمستويات والصعوبة في [`docs/LEVELS.md`](docs/LEVELS.md).
+الحالة: **v0.4.0** (إصلاح الأرقام + الجنود مقابل الوقوف أمام الأرقام من أول ثانية؛ شخصيات خاصة مصنوعة في Blender) (نسخة تجريبية APK). خطة التطوير في [`docs/ROADMAP.md`](docs/ROADMAP.md)، وتصميم اللعبة في [`docs/GDD.md`](docs/GDD.md)، والمستويات والصعوبة في [`docs/LEVELS.md`](docs/LEVELS.md).
 **للمطورين ولوكلاء الذكاء الاصطناعي:** ابدأ بقراءة [`AGENTS.md`](AGENTS.md).
 
 ## English
@@ -42,7 +42,8 @@ tools/sandbox/setup_unity.sh                     # install Unity + Android toolc
 tools/simharness/run.sh 100 0.3                  # balance sweep (no Unity needed)
 tools/sandbox/unity.sh BuildAndroid Android      # → Builds/Plasma.apk
 ```
-Gameplay videos: [`docs/media/gameplay_v0.3.1_ar_level10.mp4`](docs/media/gameplay_v0.3.1_ar_level10.mp4) (Arabic UI, boss level) ·
+Gameplay videos: [`docs/media/gameplay_v0.4.0_ar_level1.mp4`](docs/media/gameplay_v0.4.0_ar_level1.mp4) (v0.4.0, Arabic, level 1 with hints) · [`docs/media/gameplay_v0.4.0_ar_level10.mp4`](docs/media/gameplay_v0.4.0_ar_level10.mp4) (v0.4.0, boss level) · number fixes: [`docs/reference/compare_v0.4.0_numbers.png`](docs/reference/compare_v0.4.0_numbers.png) ·
+[`docs/media/gameplay_v0.3.1_ar_level10.mp4`](docs/media/gameplay_v0.3.1_ar_level10.mp4) (v0.3.1, Arabic UI, boss level) ·
 [`docs/media/gameplay_v0.3.1_en_level1.mp4`](docs/media/gameplay_v0.3.1_en_level1.mp4) (English UI, level 1 with tutorial hints) · side by side with the ad: [`docs/reference/compare_v0.3.1.png`](docs/reference/compare_v0.3.1.png) ·
 our Blender-made characters: [`docs/media/models_v031.png`](docs/media/models_v031.png) (sources in `tools/models/blender/`)
 
