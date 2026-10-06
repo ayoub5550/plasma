@@ -2,12 +2,14 @@ using System.Collections.Generic;
 
 namespace Plasma.Sim
 {
-    public enum GateTier { Grey = 0, Blue = 1, Green = 2, Cyan = 3, Yellow = 4, Orange = 5, Purple = 6 }
+    /// <summary>Colour tier of a "+N" value (gate + conveyor tiles). Order = rarity.</summary>
+    public enum GateTier { Grey = 0, Blue = 1, Green = 2, Cyan = 3, Purple = 4, Yellow = 5 }
 
+    /// <summary>One upgrade gate in the dock: break it (Hp damage) and the conveyor tiles become "+Value".</summary>
     public struct GateSpec
     {
-        public int Value;     // soldiers granted when broken
-        public float Hp;      // damage needed to break it
+        public int Value;
+        public float Hp;
         public GateTier Tier;
     }
 
@@ -18,19 +20,19 @@ namespace Plasma.Sim
         public int Seed;
         public int EnemyCount;
         public float BruteFraction;
-        public float EnemyHpScale = 1f; // >1 once the visible-enemy cap is reached (late levels)
+        public float EnemyHpScale = 1f;
         public float HordeSpeed;     // units/s
-        public float HordeStartZ;
         public List<GateSpec> Gates = new List<GateSpec>();
         public float BossHp;
-        public float BossSpeed;
+        public float BossDepth;      // 0..1 position of the boss inside the horde (0 = front)
         public float BossBiteRate;   // soldiers killed per second while the boss touches the squad
         public bool BigBoss;
         public int BaseReward;       // coins for winning (before bonuses)
         public string Kind;          // "normal", "boss", "relief"
 
-        public int TotalGateValue { get { int s = 0; foreach (var g in Gates) s += g.Value; return s; } }
+        public int Rows => (EnemyCount + Balance.HordeColumns - 1) / Balance.HordeColumns;
         public float TotalGateHp { get { float s = 0; foreach (var g in Gates) s += g.Hp; return s; } }
+        public int TopValue => Gates.Count > 0 ? Gates[Gates.Count - 1].Value : 0;
         public int HordeHpTotal { get { int b = (int)(EnemyCount * BruteFraction); return (int)(((EnemyCount - b) * Balance.GruntHp + b * Balance.BruteHp) * EnemyHpScale); } }
     }
 }

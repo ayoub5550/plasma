@@ -13,13 +13,19 @@ Legend: ✅ done · 🟡 partly · ⬜ todo · 👤 needs the owner (accounts, m
 - ✅ Instanced renderer, procedural meshes, code-built UI, synthesised SFX, haptics, icon
 - ✅ Android APK (debug-signed) + rendered gameplay capture from the real player
 
-## M1 — "Feels great on a phone" (v0.2) — next
-- ⬜👤 Device test of v0.1.0 on 2–3 phones (low/mid/high). Record FPS, heat, touch feel. Fill `docs/TESTING.md §4` checklist.
-- ⬜ Performance: frame budget overlay (debug), LOD for far enemies (merge 4 → 1 instance beyond z 25), cap tracers, verify 60 fps with 2400 enemies on a mid phone
-- ⬜ Juice: coin fly-to-counter, new soldiers jump in from the gate, slow-mo + flash on boss kill, blob shadows, tracer trails, gate "cloth" collapse mesh, screen-edge red flash on damage
-- ⬜ Music: 2 loops (menu, battle) — CC0 or commissioned; volume sliders
-- ⬜ Tutorial polish: animated hand hint on L1, "shoot the gate!" arrow until first gate broken
-- ⬜ Settings panel: sound, music, vibration, language
+## M1 — "Exactly like the video" ✅ (v0.2.0, 2026-10-06)
+- ✅ Mechanic rebuilt from a frame-by-frame analysis of the reference: dock gate upgrades the conveyor tiles, collect at the belt end, boss inside the horde, horde rush (no dead time)
+- ✅ Look rebuilt: camera, palette, chibi soldiers, red carpet horde (2800, LOD), pillow gate, belt tiles, brute boss with blade, flame tracers, smoke, blob shadows, fog
+- ✅ Juice: inflate/deflate, ring badge, belt upgrade wave, soldiers jump in, gold pops, slow-mo boss kill
+- ✅ Arabic + English UI (Lalezar font + own Arabic shaper), settings (sound, music, vibration, language), contextual tutorial (L1–2), synthesised music loop
+- ✅ Balance re-tuned with the new bot (100 levels, all skills)
+
+## M1.5 — "Feels great on a phone" (v0.3) — next
+- ⬜👤 Device test of v0.2.0 on 2–3 phones (low/mid/high). Record FPS, heat, touch feel. Fill `docs/TESTING.md §4` checklist.
+- ⬜ Difficulty: calibrate with real players — the bot wins everything first try (see `docs/LEVELS.md §4`)
+- ⬜ Performance: frame budget overlay (debug), verify 60 fps with 2800 enemies on a mid phone, quality toggle (enemy cap / LOD distance)
+- ⬜ Juice: coin fly-to-counter, walk cycle (squash) for horde & boss, screen-edge red flash on damage, tile "clack" on the belt
+- ⬜ Music: longer loops (menu, battle); volume sliders
 
 ## M2 — Content & depth (v0.3)
 - ⬜ Enemy variety: runners (fast, low HP), shield bearers (block 1 column), bombers (explode on death → kill neighbours), flyers (skip the line)

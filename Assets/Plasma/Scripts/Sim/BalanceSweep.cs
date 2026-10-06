@@ -52,7 +52,7 @@ namespace Plasma.Sim
             var p = new PlayerProfile();
             sb.AppendLine($"# Career sweep: skill {skill:0.00}, levels 1..{levels}");
             sb.AppendLine();
-            sb.AppendLine("| L | kind | enemies | spd | gates(+sum) | boss hp | attempts | time s | max squad | end squad | upg F/R/S/G | coins |");
+            sb.AppendLine("| L | kind | enemies | spd | gate ladder | boss hp | attempts | time s | max squad | end squad | upg F/R/S/G | coins |");
             sb.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|---|");
             int totalAttempts = 0, stuck = 0;
             for (int L = 1; L <= levels; L++)
@@ -68,7 +68,7 @@ namespace Plasma.Sim
                 }
                 AutoBuy(p);
                 totalAttempts += Math.Min(a, maxAttempts);
-                sb.AppendLine($"| {L} | {spec.Kind} | {spec.EnemyCount}{(spec.EnemyHpScale > 1 ? $"x{spec.EnemyHpScale:0.0}hp" : "")} | {spec.HordeSpeed:0.00} | {spec.Gates.Count}(+{spec.TotalGateValue}) | {spec.BossHp} | {(r.Won ? a.ToString() : "FAIL")} | {r.Time:0} | {r.MaxSoldiers} | {r.Soldiers} | {p.Upg[0]}/{p.Upg[1]}/{p.Upg[2]}/{p.Upg[3]} | {p.Coins} |");
+                sb.AppendLine($"| {L} | {spec.Kind} | {spec.EnemyCount}{(spec.EnemyHpScale > 1 ? $"x{spec.EnemyHpScale:0.0}hp" : "")} | {spec.HordeSpeed:0.00} | {string.Join(">", spec.Gates.ConvertAll(g => g.Value.ToString()))} | {spec.BossHp} | {(r.Won ? a.ToString() : "FAIL")} | {r.Time:0} | {r.MaxSoldiers} | {r.Soldiers} | {p.Upg[0]}/{p.Upg[1]}/{p.Upg[2]}/{p.Upg[3]} | {p.Coins} |");
                 if (!r.Won) { stuck++; if (stuck >= 1) { sb.AppendLine($"\nSTUCK at level {L} after {maxAttempts} attempts."); break; } }
                 p.Level = L + 1;
             }

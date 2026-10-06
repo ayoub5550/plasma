@@ -1,58 +1,59 @@
 # Levels & difficulty curve
 
-Source of truth: `Assets/Plasma/Scripts/Sim/LevelGenerator.cs` (formulas + public tunables) and
-`Assets/Plasma/Scripts/Sim/Upgrades.cs` (player power). **Change numbers there, re-run the sweep,
-then update this file.** Never hand-edit levels: level N is generated deterministically (seed = N·7919+17).
+Source of truth: `Assets/Plasma/Scripts/Sim/LevelGenerator.cs` (formulas + public tunables),
+`Balance.cs` (layout, fire rate, conveyor speed) and `Upgrades.cs` (player power). **Change numbers
+there, re-run the sweep, then update this file.** Never hand-edit levels: level N is generated
+deterministically (seed = N·7919+17).
 
 ## 1. Design rules
 
-1. **Infinite levels.** Level N exists for every N ≥ 1 and is always identical (players can compare).
-2. **Saw-tooth curve.** Difficulty rises every level; every **5th level is a boss level** (spike:
-   big boss ×5 HP, horde ×0.85) and the level after it is a **relief level** (horde ×0.8).
-3. **Onboarding is free.** Levels 1–10 must be won first try by a casual player (bot skill 0.3).
-4. **Upgrades are the long-term lever.** From ~30 the casual player needs retries/upgrades;
-   enemy power grows slightly faster than gate income, so coins (and later rewarded boosts) matter.
-5. **No hard walls.** A casual player must never need more than ~15 attempts on one level
-   (current v0.1 violates this at level ~80 → ROADMAP P1).
-6. Visible enemies are capped at 2400 (performance); beyond that count stays and HP scales.
+1. **Infinite levels.** Level N exists for every N ≥ 1 and is always identical.
+2. **Saw-tooth curve.** Every **5th level is a boss level** (big boss, bigger jackpot gate) and the
+   level after it is a **relief level** (horde ×0.8, jackpot ×0.85).
+3. **The core decision** (from the reference video): every second spent at the dock (breaking the
+   upgrade gate) or at the belt (collecting tiles) is a second the horde marches unopposed.
+4. **Onboarding is free.** Levels 1–10 must be won first try by a casual player (bot skill 0.3).
+5. **No hard walls.** A casual player never needs more than ~15 attempts on one level.
+6. Visible enemies are capped at 2800 (performance); beyond that the count stays and HP grows by √(n/2800).
 
 ## 2. Formulas (t = level − 1)
 
 | Quantity | Formula | Tunable(s) |
 |---|---|---|
-| Enemies | `90 + 30·t + 0.9·t^1.5` (×0.85 boss, ×0.8 relief), cap 2400 then HP×(n/2400) | `HordeBase, HordePerLevel, HordeCurve, HordeCurveExp` |
-| Enemy HP (grunt) | `1 + 0.40·t + 0.011·t²` (brute = ×4) | `EnemyHpLin, EnemyHpQuad` |
-| Brute share | 0 % until L4, then `4 % + 0.8 %·(L−4)`, max 30 % | in code |
-| Horde speed | `min(1.25 + 0.022·t, 2.5)` u/s | in code |
-| Gate budget (sum of values) | `22 + 6.5·t` | `GateBudgetBase, GateBudgetPerLevel` |
-| Gate count | `7 + min(L/4, 6)` + `min(3, 1 + L/10)` "+0" blockers | in code |
-| Gate values | geometric ramp ×1.3, jitter ±15 %, snapped to 1,2,3,4,5,6,8,10,12,15,20,25,30,40,50,60,75,99 | `GateRamp` |
-| Gate HP | `(2 + 2.2·v^1.1)·(1 + 0.10·t)` | `GateHp*` |
-| Boss HP | `EnemyHp(L)·(60 + 10·L)` (×5 on boss levels) | `BossHp*, BigBossMult` |
-| Boss bite | `(8 + 0.5·L)` soldiers/s (×2 big boss) | in code |
+| Enemies | `1400 + 120·t` (×0.8 relief), rounded to 14 columns, cap 2800 then HP×√(n/2800) | `HordeBase, HordePerLevel` |
+| Enemy HP (grunt) | `1 + 0.14·t + 0.0008·t²` (brute = ×4) | `EnemyHpLin, EnemyHpQuad` |
+| Brute share | 0 % until L4, then `3 % + 0.6 %·(L−4)`, max 25 % | in code |
+| Horde speed | `min(0.6 + 0.012·t, 1.15)` u/s; **rushes** up to ×3.5 while nothing is within z 11 (no dead time) | `BattleSim.MarchSpeed` |
+| Jackpot (last gate value) | `Nice(min(99, (18 + 4·t)·(1.6 boss)·(0.85 relief)))` | `TopBase, TopPerLevel, TopExp` |
+| Gate ladder | `3 + min(3, L/8)` gates, geometric 1 → jackpot, snapped to 1,2,3,5,8,10,15,20,25,30,40,50,75,99 | in code |
+| Gate HP | `(4 + 9·(v − 1))·(1 + 0.06·t)` | `GateHp*` |
+| Conveyor | one tile every 1.15 u at 3.2 u/s ≈ **2.8 tiles/s**; tile = `round(value × TileBonus)` soldiers | `Balance.Conv*` |
+| Squad damage | 1.25 dps per soldier × Firepower × Fire rate; up to 9 parallel tracer streams | `Balance.FireInterval, BaseDamage` |
+| Boss HP | `max(30, 0.12 · horde HP)` (×3 on boss levels); walks inside the horde at 80 % depth (90 % boss level) | `BossHpMult, BigBossMult` |
+| Boss bite | `(6 + 0.4·L)` soldiers/s while touching the squad (×2 big boss) | in code |
 | Win reward | `(25 + 8·L)` (×2 boss level) `+ min(squad,1000)/5` | `BalanceSweep.WinReward` |
 | Loss reward | `BaseReward · 0.5 · progress` | `BalanceSweep.LossReward` |
 
-## 3. Generated levels (v0.1.0)
+## 3. Generated levels (v0.2.0)
 
-| Level | kind | enemies | enemy HP | brutes | speed | gates | gate values | boss HP | reward |
+| Level | kind | enemies | enemy HP | brutes | speed | gates | gate ladder (value/HP) | boss HP | reward |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | normal | 90 | 1.0 | 0% | 1.25 | 8 | 1 0 2 2 3 3 5 6 | 70 | 33 |
-| 2 | normal | 121 | 1.4 | 0% | 1.27 | 8 | 2 0 2 3 4 5 5 8 | 113 | 41 |
-| 3 | normal | 153 | 1.8 | 0% | 1.29 | 8 | 0 2 3 3 5 6 8 8 | 166 | 49 |
-| 4 | normal | 185 | 2.3 | 4% | 1.32 | 9 | 2 0 2 3 4 5 6 8 10 | 230 | 57 |
-| 5 | boss | 185 | 2.8 | 5% | 1.34 | 9 | 2 0 3 3 4 6 8 10 12 | 1527 | 130 |
-| 6 | relief | 200 | 3.3 | 6% | 1.36 | 9 | 0 2 3 4 5 8 10 10 12 | 393 | 73 |
-| 10 | boss | 327 | 5.5 | 9% | 1.45 | 11 | 3 0 3 0 4 6 6 10 10 15 20 | 4393 | 210 |
-| 15 | boss | 474 | 8.8 | 13% | 1.56 | 12 | 3 0 0 4 5 5 8 10 15 15 25 30 | 9194 | 290 |
-| 20 | boss | 624 | 12.6 | 17% | 1.67 | 15 | 2 0 0 3 3 0 4 5 8 10 12 15 20 25 30 | 16342 | 370 |
-| 25 | boss | 778 | 16.9 | 21% | 1.78 | 16 | 0 2 2 3 0 0 4 6 6 8 12 15 15 20 30 40 | 26251 | 450 |
-| 30 | boss | 935 | 21.9 | 25% | 1.89 | 16 | 0 0 2 0 3 3 5 6 8 10 12 20 25 30 30 40 | 39332 | 530 |
-| 40 | boss | 1257 | 33.3 | 30% | 2.11 | 16 | 2 0 3 0 0 4 6 8 10 15 20 25 25 40 60 60 | 76661 | 690 |
-| 50 | boss | 1588 | 47.0 | 30% | 2.33 | 16 | 4 0 0 0 5 6 8 10 12 15 25 30 40 40 60 75 | 131631 | 850 |
-| 60 | boss | 1928 | 62.9 | 30% | 2.50 | 16 | 5 0 0 0 6 8 10 12 15 20 25 40 50 60 75 99 | 207540 | 1010 |
-| 75 | boss | 2400 | 92.7 | 30% | 2.50 | 16 | 5 0 6 0 8 0 10 15 15 25 40 40 50 75 99 99 | 367886 | 1250 |
-| 100 | boss | 2400 | 207.4 | 30% | 2.50 | 16 | 6 0 0 0 8 10 15 20 20 30 50 50 75 99 99 99 | 786578 | 1650 |
+| 1 | normal | 1400 | 1.0 | 0% | 0.60 | 3 | +1/4 +5/40 +20/175 | 168 | 33 |
+| 2 | normal | 1526 | 1.1 | 0% | 0.61 | 3 | +1/4 +5/42 +20/185 | 209 | 41 |
+| 3 | normal | 1638 | 1.3 | 0% | 0.62 | 3 | +1/4 +5/45 +25/246 | 252 | 49 |
+| 4 | normal | 1764 | 1.4 | 3% | 0.64 | 3 | +1/5 +5/47 +30/313 | 329 | 57 |
+| 5 | boss | 1876 | 1.6 | 4% | 0.65 | 3 | +1/5 +8/83 +50/552 | 1176 | 130 |
+| 6 | relief | 1596 | 1.7 | 4% | 0.66 | 3 | +1/5 +5/52 +30/344 | 371 | 73 |
+| 10 | boss | 2478 | 2.3 | 7% | 0.71 | 4 | +1/6 +5/62 +20/269 +99/1364 | 2483 | 210 |
+| 15 | boss | 2800 | 3.3 | 10% | 0.77 | 4 | +1/7 +5/74 +20/322 +99/1630 | 4241 | 290 |
+| 20 | boss | 2800 | 4.5 | 13% | 0.83 | 5 | +1/9 +3/47 +10/182 +30/567 +99/1896 | 6284 | 370 |
+| 25 | boss | 2800 | 6.0 | 16% | 0.89 | 6 | +1/10 +3/54 +5/98 +15/317 +40/866 +99/2162 | 8814 | 450 |
+| 30 | boss | 2800 | 7.6 | 19% | 0.95 | 6 | +1/11 +2/36 +5/110 +15/356 +40/973 +99/2428 | 11879 | 530 |
+| 40 | boss | 2800 | 11.3 | 25% | 1.07 | 6 | +1/13 +2/43 +5/134 +15/434 +40/1186 +99/2959 | 19808 | 690 |
+| 50 | boss | 2800 | 15.8 | 25% | 1.15 | 6 | +1/16 +3/87 +8/264 +15/512 +40/1399 +99/3491 | 27820 | 850 |
+| 60 | boss | 2800 | 21.0 | 25% | 1.15 | 6 | +1/18 +3/100 +8/304 +15/590 +40/1612 +99/4022 | 36976 | 1010 |
+| 75 | boss | 2800 | 30.2 | 25% | 1.15 | 6 | +1/22 +2/71 +5/218 +15/707 +40/1931 +99/4820 | 53204 | 1250 |
+| 100 | boss | 2800 | 49.4 | 25% | 1.15 | 6 | +1/28 +2/90 +5/278 +15/902 +40/2464 +99/6149 | 87209 | 1650 |
 
 (Multiples of 5 are boss levels. Regenerate with `tools/simharness/run.sh levels`.)
 
@@ -60,27 +61,31 @@ then update this file.** Never hand-edit levels: level N is generated determinis
 
 `tools/simharness/run.sh 100 <skill>` — full tables in `docs/balance/career_skill_*.md`.
 
-| Bot skill | Meaning | Result v0.1.0 |
+| Bot skill | Meaning | Result v0.2.0 |
 |---|---|---|
-| 1.0 | instant reactions, perfect dashes | 100/100 levels first try |
-| 0.6 | good player | 100 levels, 100 attempts |
-| 0.45 | average player | 100 levels, 111 attempts (retries from L53) |
-| 0.3 | casual | first retry at L31, grind from L55, **stuck at L80** (20 attempts) |
+| 1.0 | fast reactions, dashes under pressure | 100/100 first try |
+| 0.6 | good player | 100/100 first try |
+| 0.3 | casual | 100/100 first try |
+| 0.0 | very slow reactions | 100 levels, 101 attempts |
 
-Interpretation: the curve is friendly for the first ~30 levels (good for retention), then
-becomes upgrade-driven. Bots have perfect information, so real humans will be weaker than the
-same "skill" number — **calibrate with real playtest data** (analytics: attempts per level,
-session length) before the store launch (ROADMAP P1).
+Typical level length for the bot: 25–45 s.
+
+**Known issue (P1): the curve is too gentle for bots.** The squad economy is exponential (tile
+value × collection time), so once the bot reaches the jackpot tier it out-scales the horde. Bots
+make perfect macro decisions; humans will not, so the real difficulty must be calibrated from the
+first device tests / analytics. Levers, in order: earlier pressure (lower `HordeStartZ`, faster
+`HordeSpeed` growth), higher `GateHpGrowth` (jackpot comes later), `EnemyHpLin`, and capping
+`TopValue` growth. Re-run the sweep after each change.
 
 ## 5. Endless mode
 
-Wave N uses `LevelGenerator.Create(N)`; the squad is **not** reset between waves and new gates
-are appended to the conveyor. Coins: half of each cleared wave's `BaseReward` + a quarter of the
-final wave's. Best wave is saved.
+Wave N uses `LevelGenerator.Create(N)`; the squad is **not** reset between waves; only gates whose
+value beats the current belt value are appended to the dock queue. Coins: half of each cleared
+wave's `BaseReward` + a quarter of the final wave's. Best wave is saved.
 
 ## 6. How to change difficulty safely
 
-1. Edit tunables in `LevelGenerator.cs` / `Upgrades.cs`.
-2. `tools/simharness/run.sh 100 0.3` and `0.45` and `1` (2 s each).
-3. Check the rules in §1 (first retry for 0.3 not before L25, never > 15 attempts, 0.6 rarely retries).
+1. Edit tunables in `LevelGenerator.cs` / `Balance.cs` / `Upgrades.cs`.
+2. `tools/simharness/run.sh 100 0.3`, `0.6` and `1` (≈2 s each); `run.sh trace L skill F R S T` for one level second by second.
+3. Check the rules in §1.
 4. Save the tables to `docs/balance/`, update §2–§4 here, commit with the numbers in the message.

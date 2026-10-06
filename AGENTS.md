@@ -11,31 +11,35 @@ docs are in English; `README.md` is bilingual.
 
 ## 1. What this project is
 
-**Plasma — Squad vs Horde**: an infinite-level, portrait, one-finger Android shooter. Drag the
-squad left to shoot number gates (+1 … +99) and grow, drag right to shoot the advancing red horde,
-kill the boss at the end of every level. Full design: `docs/GDD.md`. Difficulty: `docs/LEVELS.md`.
+**Plasma — Squad vs Horde**: an infinite-level, portrait, one-finger Android shooter that reproduces the
+mechanic of the owner's reference ad (`docs/reference/reference_ad.mp4`, analysis in `docs/reference/README.md`):
+shoot the **upgrade gate** in the dock to upgrade every tile on the left **conveyor** (+0 → +1 → +5 → … → +99),
+stand at the belt end to **collect** tiles (+N soldiers each), and stop the **red horde** with the **boss** walking
+inside it. Full design: `docs/GDD.md`. Difficulty: `docs/LEVELS.md`.
 
-Status **v0.1.0 (2026-10-06)** — playable prototype, built and verified in the sandbox:
-* Complete loop: menu (attract-mode battle behind it) → level → boss → victory/defeat → coins → 4 upgrades → next level; Endless mode; pause; save (PlayerPrefs).
-* Infinite deterministic level generator + boss/relief saw-tooth; balance validated by a bot career sweep (levels 1–100).
-* All art procedural (meshes, icon), all audio synthesised, GPU-instanced rendering, haptics.
-* Android APK built locally: `com.ayoubteke.plasma` 0.1.0 (code 1), min 24 / target 36, ARM64+ARMv7, ~17 MB, **debug-signed**.
-* Rendered gameplay captured from the real Linux player (`docs/media/`).
-* **Not yet done:** physical-device test (performance/touch feel), real art & music, Arabic UI, monetisation, store listing. See §8.
+Status **v0.2.0 (2026-10-06)** — "exactly like the video" rebuild, built and verified in the sandbox:
+* New mechanic (dock gate → belt upgrade → collect), boss inside the horde, horde rush when nothing is near.
+* New look matched to the reference frame by frame: camera, palette, chibi soldiers, red carpet horde (2800 instanced + LOD),
+  pillow gate (inflate/wobble/deflate), belt tiles with upgrade wave, brute boss with blade, flame tracers, smoke, blob shadows, fog.
+* Arabic + English UI (Lalezar OFL font + `ArabicText` shaper), settings (sound, music, vibration, language), tutorial hints on L1–2, synthesised music.
+* Balance re-tuned with the new bot: 100 levels, all bot skills win (too gentle → calibrate with players, `docs/LEVELS.md §4`).
+* Android APK `com.ayoubteke.plasma` 0.2.0 (code 2), min 24 / target 36, ARM64+ARMv7, ~17 MB, **debug-signed**.
+* **Not yet done:** physical-device test (performance/touch feel), difficulty calibration with humans, monetisation, store listing. See §8.
 
 ## 2. Repository map
 
 | Path | What |
 |---|---|
-| `Assets/Plasma/Scripts/Sim/` | **Pure C# gameplay** (asmdef `Plasma.Sim`, `noEngineReferences`): `Balance` (all constants), `LevelSpec`/`LevelGenerator` (levels), `BattleSim` (the whole battle), `BotPolicy` (AI player), `Upgrades`/`PlayerProfile`, `BalanceSweep`. No `UnityEngine` allowed here. |
-| `Assets/Plasma/Scripts/Runtime/` | Unity layer (asmdef `Plasma.Runtime`): `Game` (entry point + flow + capture mode), `BattleView` (runs sim at fixed 60 Hz, draws everything), `GameUI` + `UiKit` (code-built uGUI), `MeshFactory` (procedural meshes), `InstancedBatch`, `GateView`, `Visuals`, `Palette`, `Sfx` (synth audio), `Haptics`, `Persistence`. |
-| `Assets/Plasma/Resources/Shaders/` | `Plasma/Lit` (instanced, vertex-colour tint mask), `Plasma/Fx` (instanced transparent/additive), `Plasma/Text` (TextMesh). In `Resources/` so they are never stripped. |
+| `Assets/Plasma/Scripts/Sim/` | **Pure C# gameplay** (asmdef `Plasma.Sim`, `noEngineReferences`): `Balance` (layout + constants), `LevelSpec`/`LevelGenerator` (levels, gate ladders), `BattleSim` (the whole battle: conveyor, dock gate, horde, boss, bullets), `BotPolicy` (AI player), `Upgrades`/`PlayerProfile`, `BalanceSweep`. No `UnityEngine` allowed here. |
+| `Assets/Plasma/Scripts/Runtime/` | Unity layer (asmdef `Plasma.Runtime`): `Game` (entry point, flow, tutorial, settings, capture mode), `BattleView` (runs sim at fixed 60 Hz, draws everything + effects), `WorldText` (batched outlined world labels), `GameUI` + `UiKit` (code-built uGUI), `Loc` (EN/AR strings) + `ArabicText` (shaping/RTL), `MeshFactory` (procedural meshes), `InstancedBatch`, `Visuals`, `Palette`, `Sfx` (synth SFX + music), `Haptics`, `Persistence`. |
+| `Assets/Plasma/Resources/Shaders/` | `Plasma/Lit` (instanced, tint mask, spec, fog), `Plasma/Fx` (instanced transparent/additive, vertex colour), `Plasma/Text` (WorldText, ZTest switch). In `Resources/` so they are never stripped. |
+| `Assets/Plasma/Resources/Fonts/` | `Lalezar.ttf` (OFL, Latin + Arabic presentation forms) + licence. Loaded by `Visuals.Font`. |
 | `Assets/Plasma/Editor/PlasmaBuild.cs` | Setup + builds (APK, AAB, Linux capture player) + balance sweep. Menu **Plasma/**. |
 | `Assets/Plasma/Branding/` | Launcher icon (generated by `tools/branding/make_icon.py`). |
 | `Assets/Scenes/Main.unity` | Only a camera + `Game`. Regenerated by `PlasmaBuild.Setup` — don't hand-edit. |
 | `tools/simharness/` | Mono console harness: compiles `Sim/*.cs` and runs sweeps/traces in ~2 s, no Unity. |
 | `tools/sandbox/` | Unity install (`setup_unity.sh`), launchers (`run_unity.sh`, `unity.sh`), gameplay capture (`capture.sh`), helpers. |
-| `docs/` | `GDD.md`, `LEVELS.md`, `ROADMAP.md`, `TESTING.md`, `ART_AUDIO.md`, `STORE.md`, `balance/` (sweep tables), `media/` (screenshots + video), `store/` (512 px icon). |
+| `docs/` | `GDD.md`, `LEVELS.md`, `ROADMAP.md`, `TESTING.md`, `ART_AUDIO.md`, `STORE.md`, `balance/` (sweep tables), `media/` (screenshots + videos), `store/` (512 px icon), `reference/` (the owner's reference ad + analysis — never ship it). |
 
 Generated / git-ignored: `Library/ Temp/ Logs/ Builds/ UserSettings/`. Never commit builds, keystores or passwords.
 
@@ -43,11 +47,13 @@ Generated / git-ignored: `Library/ Temp/ Logs/ Builds/ UserSettings/`. Never com
 
 ```
  touch drag ─► BattleView.HandleInput ─► sim.TargetX
-                                     ┌──────────── BattleSim.Step(1/60) ─────────────┐
- BotPolicy (attract/capture/sweep) ─►│ squad move · horde march · contact bites ·     │──► Events (SimEvent list)
-                                     │ boss · volleys · bullet hits (pierce) · gates  │        │
-                                     └────────────────────────────────────────────────┘        ▼
- BattleView.Draw: InstancedBatch (soldiers, enemies, boss, tracers, smoke) + GateView + labels   Game.OnSimEvent → Sfx, Haptics, UI banners, results
+                                     ┌──────────────── BattleSim.Step(1/60) ─────────────────┐
+ BotPolicy (attract/capture/sweep) ─►│ squad move · conveyor (collect/miss) · horde march +   │──► Events (SimEvent list)
+                                     │ rush · contact bites · boss · volleys · bullet hits     │        │
+                                     │ (dock gate → belt upgrade, horde pierce, boss)          │        ▼
+                                     └─────────────────────────────────────────────────────────┘  Game.OnSimEvent → Sfx, Haptics,
+ BattleView.Draw: InstancedBatch (soldiers, enemies+LOD, tiles, tracers, smoke, shadows) +            UI banners, tutorial, results
+                  DrawMesh (pillow gate, boss) + WorldText (tile/gate numbers, squad count, pops)
 ```
 Rules: gameplay logic lives **only** in `Sim/` (deterministic, engine-free). The view never changes
 game state; it reads state and reacts to events. This is what makes headless balancing possible.
@@ -68,16 +74,19 @@ Sandbox gotchas (all handled by the scripts, documented so you don't rediscover 
 * Runtime-created materials ⇒ Unity strips GPU-instancing variants ⇒ **everything instanced renders invisible**. `PlasmaBuild.KeepInstancingVariants()` sets `m_InstancingStripping: 2` (Keep All). Don't remove it.
 * Capturing the Linux player under Xvfb needs `-popupwindow`; otherwise Unity waits forever for a window-manager resize and renders one frame.
 * `pkill -f Plasma.x86_64` also kills your own shell (pattern matches the command line) → use `pkill -x Plasma.x86_64`.
+* Agent sandboxes: don't background Unity/capture with `( … &)` inside a tool call that has a short deadline — the
+  whole process group is killed when the call times out. Run builds in the foreground with a long timeout.
 
 ## 5. Everyday commands
 
 ```bash
-tools/simharness/run.sh 100 0.45                 # balance career sweep (2 s, no Unity)
+tools/simharness/run.sh 100 0.3                  # balance career sweep (2 s, no Unity)
 tools/simharness/run.sh trace 44 1 12 12 11 11   # per-second timeline of one level (+ upgrade levels F R S G)
 tools/sandbox/unity.sh Setup                     # compile check + regenerate settings/scene (~40 s)
 tools/sandbox/unity.sh BuildAndroid Android      # → Builds/Plasma.apk (~3 min incremental)
 tools/sandbox/unity.sh BuildLinux Linux64        # → Builds/linux/Plasma.x86_64 (capture player)
 tools/sandbox/capture.sh /tmp/cap 5 1800 0.9     # real rendered gameplay: frames + gameplay.mp4 (~1 min)
+PLASMA_LANG=ar tools/sandbox/capture.sh /tmp/cap 10 2400 0.9   # same with the Arabic UI
 PLASMA_VERSION=0.2.0 PLASMA_VERSION_CODE=2 tools/sandbox/unity.sh BuildAndroid Android   # versioned build
 ```
 Store build (`.aab`): set `PLASMA_KEYSTORE`, `PLASMA_KEYSTORE_PASS`, `PLASMA_KEYALIAS[_PASS]`, run `BuildAndroidStore`.
@@ -95,6 +104,8 @@ Before every push: (1) `tools/simharness/run.sh 100 0.3` — no new walls; (2) `
 ## 7. Conventions
 
 * Gameplay numbers only in `Balance.cs` / `LevelGenerator.cs` / `Upgrades.cs`; document changes in `docs/LEVELS.md` with the sweep result.
+* Every UI string goes through `Loc.T(key)` with both English and Arabic; never assign raw Arabic to a Text (it must be shaped by `ArabicText.Fix`). Arabic lines must not rely on auto-wrap (RTL reordering is per line) — use explicit `\n`.
+* World-space labels: add them to `WorldText` (one draw call); don't create TextMesh objects.
 * `Sim/` stays engine-free and deterministic (no `UnityEngine`, no `DateTime.Now`, seeded `System.Random` only).
 * One MonoBehaviour per file, file name = class name (Unity "missing script" rule).
 * New visuals: procedural or CC0 assets only (see `docs/ART_AUDIO.md`); record licence + source for every imported asset in `docs/ART_AUDIO.md`.
@@ -103,14 +114,20 @@ Before every push: (1) `tools/simharness/run.sh 100 0.3` — no new walls; (2) `
 
 ## 8. What to do next (priority order) — see `docs/ROADMAP.md` for the full plan
 
-1. **Device test v0.1.0 APK** (owner): FPS with 1000+ enemies, touch feel (`DragSensitivity`), readability of gate numbers, audio levels. Collect concrete notes.
-2. **Balance P1:** remove the casual wall at ~L80 (more coin income or slower HP growth after L60), add analytics hooks (attempts/level).
-3. **Juice pack:** coin fly-to-counter, squad jump-in for new soldiers, slow-mo boss kill, blob shadows, tracer trails, music loop.
-4. **Art pass:** better character meshes (still procedural or CC0 low-poly), gate "cloth" collapse, environment props (water shimmer, lane lights).
-5. **Arabic UI:** uGUI cannot shape Arabic → add RTL shaping (e.g. an Arabic letter-shaping helper or TextMeshPro + RTLTMPro) and a font with Arabic glyphs; language toggle (`PlayerProfile.Arabic` already exists).
-6. **Monetisation:** rewarded ads (double coins, +squad start, revive), optional interstitial every N levels, "remove ads" IAP. Needs owner accounts (AdMob/Unity Ads).
+1. **Device test v0.2.0 APK** (owner): FPS with 2800 enemies + 100 tiles, touch feel (`BattleView.DragSensitivity`),
+   readability of tile/gate numbers, Arabic text, audio/music levels. Collect concrete notes.
+2. **Difficulty calibration:** the bot wins all 100 levels first try at every skill (`docs/LEVELS.md §4`). Use the
+   levers listed there; add analytics hooks (attempts per level, time per level) once accounts exist.
+3. **Performance pass** if needed: quality setting (enemy cap 2800 → 1600, LOD distance), fewer tile labels beyond z 40.
+4. **Juice:** coin fly-to-counter, walk squash for horde/boss, red screen-edge flash on damage.
+5. **Content (M2):** enemy variety (runners, shields), gate variety (×2, charge gates), boss archetypes, biomes.
+6. **Monetisation:** rewarded ads (double coins, +squad start, revive), "remove ads" IAP. Needs owner accounts (AdMob/Unity Ads).
 7. **Store:** Play Console listing (AR/EN), privacy policy, content rating, signed AAB, closed testing track.
 
 ## 9. Change log
 
+* **v0.2.0 (2026-10-06)** — "exactly like the video": new mechanic (dock gate upgrades the conveyor, collect at the
+  belt end, boss inside the horde, horde rush), full visual rebuild (camera, palette, meshes, pillow gate, belt tiles,
+  flame tracers, smoke, shadows, fog, effects), `WorldText`, Arabic/English UI with own shaper + Lalezar font,
+  settings panel, tutorial hints, synthesised music, new bot + re-tuned balance, reference video in `docs/reference/`.
 * **v0.1.0 (2026-10-06)** — first playable: sim + generator + bot sweep, instanced renderer, UI, SFX, icon, Android APK, capture pipeline, docs.
