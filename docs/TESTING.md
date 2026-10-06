@@ -53,6 +53,7 @@ Debug switches: `-plasmaNoInst` (skip instanced draws), `-plasmaNoUI` (hide canv
 |---|---|---|
 | 1 | Install & launch | icon correct, splash, menu < 3 s |
 | 2 | FPS L1 / L30 / L60 / Endless wave 40 | ≥ 55 fps mid phone, ≥ 30 fps low phone, no hitches on gate break |
+| 2b | Graphics High vs Low (Settings) | High: shadows under squad/tiles/gate + glowing tracers, no shadow acne/flicker; Low: blob shadows; first launch on a weak phone picks Low or the watchdog switches within ~10 s |
 | 3 | Drag feel | squad follows finger 1:1, no jitter, can reach both lane edges comfortably |
 | 4 | Readability | gate + tile numbers readable at a glance; squad count readable; Arabic text joined correctly |
 | 4b | Mechanic clarity | a new player understands (with the hints) gate → belt upgrade → collect at the belt end |

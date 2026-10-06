@@ -13,16 +13,19 @@ namespace Plasma
         readonly Vector4[] _c = new Vector4[Max];
         readonly float[] _f = new float[Max];
         readonly MaterialPropertyBlock _mpb = new MaterialPropertyBlock();
-        readonly bool _castShadows;
+        /// <summary>Cast real-time shadows (only effective when the light has shadows: High quality).</summary>
+        public bool CastShadows;
         readonly bool _useFlash;
         int _n;
         static readonly int ColorId = Shader.PropertyToID("_Color");
         static readonly int FlashId = Shader.PropertyToID("_Flash");
 
-        public InstancedBatch(Mesh mesh, Material mat, bool useFlash = false)
+        public InstancedBatch(Mesh mesh, Material mat, bool useFlash = false, bool castShadows = false)
         {
-            _mesh = mesh; _mat = mat; _useFlash = useFlash; _mat.enableInstancing = true;
+            _mesh = mesh; _mat = mat; _useFlash = useFlash; _mat.enableInstancing = true; CastShadows = castShadows;
         }
+
+        public int Count => _n;
 
         public void Add(in Matrix4x4 m, Color c, float flash = 0f)
         {
@@ -39,7 +42,7 @@ namespace Plasma
             _mpb.Clear();
             _mpb.SetVectorArray(ColorId, _c);
             if (_useFlash) _mpb.SetFloatArray(FlashId, _f);
-            Graphics.DrawMeshInstanced(_mesh, 0, _mat, _m, _n, _mpb, ShadowCastingMode.Off, false);
+            Graphics.DrawMeshInstanced(_mesh, 0, _mat, _m, _n, _mpb, CastShadows && QualityManager.High ? ShadowCastingMode.On : ShadowCastingMode.Off, true);
             _n = 0;
         }
     }

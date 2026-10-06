@@ -35,6 +35,8 @@ namespace Plasma.Sim
         public bool Arabic = true;
         public bool LangChosen;      // false = follow the device language
         public bool TutorialDone;
+        public bool HighQuality = true;
+        public bool QualityChosen;   // false = automatic (first-run heuristic + fps watchdog)
 
         public int L(UpgradeType u) => Upg[(int)u];
 

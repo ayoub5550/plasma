@@ -11,6 +11,7 @@ namespace Plasma
     /// the flow Menu -> Battle -> Result, the first-run tutorial hints, audio and settings.
     /// Also implements the headless capture mode used by CI/agents:
     ///   -plasmaCapture DIR [-plasmaLevel N] [-plasmaFrames N] [-plasmaSkill 0..1] [-plasmaMenuFrames N] [-plasmaLang en|ar]
+    ///   [-plasmaQuality high|low] [-plasmaDamage MULT (capture: weaker squad so the boss walks up)] [-plasmaSettings]
     /// </summary>
     public class Game : MonoBehaviour
     {
@@ -24,6 +25,7 @@ namespace Plasma
         bool _endless, _paused;
         int _runCoins;
         float _resultDelay = -1;
+        float _captureDamage = 1f;
 
         // tutorial state (levels 1-2)
         bool _tutorial;
@@ -53,6 +55,10 @@ namespace Plasma
             if (cam == null) { cam = new GameObject("Main Camera").AddComponent<Camera>(); cam.tag = "MainCamera"; }
             _view = new GameObject("Battle").AddComponent<BattleView>();
             _view.SetupCamera(cam);
+            if (!_profile.QualityChosen) _profile.HighQuality = QualityManager.AutoHigh();
+            string q = Arg("-plasmaQuality");
+            if (q != null) _profile.HighQuality = q != "low";
+            QualityManager.Apply(_profile.HighQuality, cam);
             _view.OnEvent += OnSimEvent;
 
             _ui = gameObject.AddComponent<GameUI>();
@@ -69,6 +75,7 @@ namespace Plasma
             _ui.OnToggleSound = () => { _profile.SoundOn = !_profile.SoundOn; SaveAndRefresh(); };
             _ui.OnToggleMusic = () => { _profile.MusicOn = !_profile.MusicOn; _sfx.SetMusic(_profile.MusicOn); SaveAndRefresh(); };
             _ui.OnToggleVibration = () => { _profile.VibrationOn = !_profile.VibrationOn; Haptics.Enabled = _profile.VibrationOn; if (_profile.VibrationOn) Haptics.Pulse(40); SaveAndRefresh(); };
+            _ui.OnToggleQuality = () => { _profile.HighQuality = !_profile.HighQuality; _profile.QualityChosen = true; QualityManager.Apply(_profile.HighQuality, Camera.main); SaveAndRefresh(); };
             _ui.OnToggleLanguage = () => { _profile.Arabic = !_profile.Arabic; _profile.LangChosen = true; Loc.Arabic = _profile.Arabic; _ui.RefreshTexts(); SaveAndRefresh(); };
 
             GoMenu();
@@ -108,7 +115,9 @@ namespace Plasma
             _view.Bot = null;
             _sfx.Enabled = _profile.SoundOn;
             _ui.ShowHud(Title());
-            _view.Begin(new BattleSim(spec, _profile.Modifiers(), endless));
+            var mods = _profile.Modifiers();
+            mods.DamageMult *= _captureDamage;   // capture only (-plasmaDamage): lets the boss walk up for visual checks
+            _view.Begin(new BattleSim(spec, mods, endless));
             _tutorial = !endless && _profile.Level <= 2;
             _hintStage = 0; _hintClock = 0;
             if (spec.BigBoss && !endless) _ui.Banner(Loc.T("boss_level"), new Color(1f, 0.35f, 0.3f));
@@ -141,6 +150,7 @@ namespace Plasma
                 var sim = _view.Sim;
                 _ui.UpdateHud(_endless ? (sim.Wave - 1 + sim.Progress) / Mathf.Max(1, sim.Wave) : sim.Progress, _profile.Coins + _runCoins, Title());
                 if (_tutorial && !_paused) Tutorial(sim);
+                if (!_paused) FpsWatchdog();
                 if (_resultDelay >= 0)
                 {
                     _resultDelay -= Time.deltaTime;
@@ -154,6 +164,25 @@ namespace Plasma
                 else if (_mode == Mode.Result) GoMenu();
                 else if (_ui.SettingsOpen) _ui.CloseSettings();
             }
+        }
+
+        // ------------------------------------------------------------------ fps watchdog
+        float _fpsClock; int _fpsFrames, _slowWindows;
+        /// <summary>Automatic quality only: two consecutive 5 s windows under 38 fps in High -> switch to Low (once).</summary>
+        void FpsWatchdog()
+        {
+            if (_profile.QualityChosen || !QualityManager.High || Arg("-plasmaCapture") != null) return;
+            _fpsClock += Time.unscaledDeltaTime; _fpsFrames++;
+            if (_fpsClock < 5f) return;
+            float fps = _fpsFrames / _fpsClock;
+            _fpsClock = 0; _fpsFrames = 0;
+            _slowWindows = fps < 38f ? _slowWindows + 1 : 0;
+            if (_slowWindows < 2) return;
+            Debug.Log($"[Plasma] {fps:0} fps in High quality -> switching to Low");
+            _profile.HighQuality = false;
+            QualityManager.Apply(false, Camera.main);
+            Persistence.Save(_profile);
+            _slowWindows = 0;
         }
 
         /// <summary>Contextual first-run hints: drag, shoot the gate, collect the tiles, stop the horde.</summary>
@@ -264,6 +293,7 @@ namespace Plasma
             int frames = int.TryParse(Arg("-plasmaFrames"), out var f) ? f : 300;
             int menuFrames = int.TryParse(Arg("-plasmaMenuFrames"), out var mf) ? mf : 45;
             float skill = float.TryParse(Arg("-plasmaSkill"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var s) ? s : 0.9f;
+            if (float.TryParse(Arg("-plasmaDamage"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var dm)) _captureDamage = dm;
             Directory.CreateDirectory(dir);
             Time.captureFramerate = 30;
             Debug.Log($"[Plasma] capture -> {dir} level {level} frames {frames}");
@@ -272,6 +302,7 @@ namespace Plasma
             for (int u = 0; u < Upgrades.Count; u++) _profile.Upg[u] = Mathf.Max(0, (level - 1) / 3);
             GoMenu();
             int n = 0;
+            if (Arg("-plasmaSettings") != null) { _ui.RefreshMenu(_profile); _ui.ShowSettings(); }   // capture the settings panel instead of the menu
             for (int i = 0; i < menuFrames; i++) { yield return new WaitForEndOfFrame(); Shot(Path.Combine(dir, $"f{n++:00000}.png")); }
             StartBattle(false);
             _view.Bot = new BotPolicy(skill, 7);

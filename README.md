@@ -1,6 +1,6 @@
 # Plasma — Squad vs Horde
 
-<p align="center"><img src="docs/media/belt_gate.png" width="200"> <img src="docs/media/jackpot.png" width="200"> <img src="docs/media/horde_smoke.png" width="200"> <img src="docs/media/menu_ar.png" width="200"></p>
+<p align="center"><img src="docs/media/v030_high_ar.png" width="200"> <img src="docs/media/boss_model_v030.png" width="200"> <img src="docs/media/settings_ar_v030.png" width="200"> <img src="docs/media/menu_ar.png" width="200"></p>
 
 ## بالعربية
 
@@ -8,9 +8,10 @@
 - **البوابة المنتفخة** في أعلى الساحة: أطلق عليها حتى تنفجر، فتتحول كل بطاقات **الشريط** إلى قيمتها (+0 ← +1 ← +5 ← … ← +99).
 - **الشريط** على اليسار يحمل بطاقات "+N" نحوك: قف عند نهايته لتجمعها، فتكبر فرقتك.
 - **الحشد الأحمر** يزحف على اليمين ومعه **زعيم** بسيف ضخم: أوقفه قبل أن يصل إليك. كل خامس مستوى زعيم عملاق.
-- 4 ترقيات دائمة، ووضع **بلا نهاية**، وواجهة **عربية وإنجليزية**، وإعدادات للأصوات والموسيقى والاهتزاز، وشرح تفاعلي في أول مستويين.
+- 4 ترقيات دائمة، ووضع **بلا نهاية**، وواجهة **عربية وإنجليزية**، وإعدادات للأصوات والموسيقى والاهتزاز والرسوميات (عالية: ظلال حقيقية ووهج / منخفضة للهواتف الضعيفة)، وشرح تفاعلي في أول مستويين.
+- شخصيات ثلاثية الأبعاد مجانية الترخيص (CC0) من Kenney وQuaternius.
 
-الحالة: **v0.2.1** (نسخة تجريبية APK). خطة التطوير في [`docs/ROADMAP.md`](docs/ROADMAP.md)، وتصميم اللعبة في [`docs/GDD.md`](docs/GDD.md)، والمستويات والصعوبة في [`docs/LEVELS.md`](docs/LEVELS.md).
+الحالة: **v0.3.0** (نسخة تجريبية APK). خطة التطوير في [`docs/ROADMAP.md`](docs/ROADMAP.md)، وتصميم اللعبة في [`docs/GDD.md`](docs/GDD.md)، والمستويات والصعوبة في [`docs/LEVELS.md`](docs/LEVELS.md).
 **للمطورين ولوكلاء الذكاء الاصطناعي:** ابدأ بقراءة [`AGENTS.md`](AGENTS.md).
 
 ## English
@@ -21,7 +22,8 @@ every tile on the **conveyor** into +1, +5 … +99, stand at the belt's end to *
 and stop the **red horde** and the **boss** walking inside it. Four upgrades, Endless mode, Arabic + English UI.
 
 * Engine: Unity 2022.3.62f3 LTS, built-in RP, Android (IL2CPP, ARM64 + ARMv7, min SDK 24, target 36)
-* No imported assets except the OFL font Lalezar — procedural meshes, synthesised SFX + music, GPU instancing for thousands of units
+* Only free-licence assets: CC0 3D characters (Kenney, Quaternius) baked into instanced flipbooks, OFL font Lalezar; procedural world, synthesised SFX + music, GPU instancing for thousands of units
+* Graphics High (real-time shadows + HDR bloom) / Low, auto-selected per device
 * Gameplay is a deterministic engine-free C# simulation with a bot player → balance is tested headless in seconds
 
 | Doc | Content |
@@ -40,7 +42,7 @@ tools/sandbox/setup_unity.sh                     # install Unity + Android toolc
 tools/simharness/run.sh 100 0.3                  # balance sweep (no Unity needed)
 tools/sandbox/unity.sh BuildAndroid Android      # → Builds/Plasma.apk
 ```
-Gameplay videos: [`docs/media/gameplay_v0.2.1_ar_level10.mp4`](docs/media/gameplay_v0.2.1_ar_level10.mp4) (Arabic UI, boss level) ·
-[`docs/media/gameplay_v0.2.1_en_level1.mp4`](docs/media/gameplay_v0.2.1_en_level1.mp4) (English UI, level 1 with tutorial hints)
+Gameplay videos: [`docs/media/gameplay_v0.3.0_ar_level10.mp4`](docs/media/gameplay_v0.3.0_ar_level10.mp4) (Arabic UI, boss level) ·
+[`docs/media/gameplay_v0.3.0_en_level1.mp4`](docs/media/gameplay_v0.3.0_en_level1.mp4) (English UI, level 1 with tutorial hints) · side by side with the ad: [`docs/reference/compare_v0.3.0.png`](docs/reference/compare_v0.3.0.png)
 
-© 2026 Ayoub Teke. All rights reserved. Font Lalezar © The Lalezar Project Authors, SIL OFL 1.1.
+© 2026 Ayoub Teke. All rights reserved. Font Lalezar © The Lalezar Project Authors, SIL OFL 1.1. Character models by Kenney and Quaternius (CC0).

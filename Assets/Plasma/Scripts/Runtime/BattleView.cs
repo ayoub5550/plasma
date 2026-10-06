@@ -26,6 +26,14 @@ namespace Plasma
         const float BeltTop = 0.28f;
         float _acc, _slowmo;
 
+        // baked CC0 character flipbooks (ModelLibrary): one instanced batch per animation frame
+        InstancedBatch[] _soldierFrames, _enemyFrames;
+        Mesh[] _bossFrames;
+        float _soldierFps, _enemyFps, _bossFps;
+        // model scales (models are 1 unit tall)
+        const float SoldierModelH = 0.9f, EnemyModelH = 0.5f, BruteModelH = 0.66f, BossModelH = 3.3f, BigBossModelH = 4.1f;
+        float EnemyModelMaxZ => QualityManager.High ? LodZ : 14f;
+
         InstancedBatch _soldiers, _enemies, _enemiesLod, _flames, _flameGlow, _puffs, _shadows, _tiles, _slats, _pieces, _sparks;
         WorldText _text, _overlay;
         readonly MaterialPropertyBlock _mpb = new MaterialPropertyBlock();
@@ -55,7 +63,7 @@ namespace Plasma
         readonly List<Badge> _badges = new List<Badge>();
         struct Arrival { public Vector3 A; public int Slot; public float T; }
         readonly List<Arrival> _arrivals = new List<Arrival>();
-        float _killPuffBudget;
+        float _killPuffBudget, _bossAnim;
 
         // input
         bool _dragging; float _dragStartFinger, _dragStartTarget;
@@ -73,10 +81,19 @@ namespace Plasma
 
         void Awake()
         {
-            _soldiers = new InstancedBatch(MeshFactory.Soldier, Visuals.Lit, true);
-            _enemies = new InstancedBatch(MeshFactory.Enemy, Visuals.Lit, true);
-            _enemiesLod = new InstancedBatch(MeshFactory.EnemyLod, Visuals.Lit, true);
-            _tiles = new InstancedBatch(MeshFactory.Tile, Visuals.Lit, true);
+            _soldiers = new InstancedBatch(MeshFactory.Soldier, Visuals.Lit, true, true);
+            _enemies = new InstancedBatch(MeshFactory.Enemy, Visuals.LitHorde, true);
+            _enemiesLod = new InstancedBatch(MeshFactory.EnemyLod, Visuals.LitHorde, true);
+            _tiles = new InstancedBatch(MeshFactory.Tile, Visuals.Lit, true, true);
+            if (ModelLibrary.Available && Array.IndexOf(Environment.GetCommandLineArgs(), "-plasmaNoModels") < 0)
+            {
+                _soldierFrames = Array.ConvertAll(ModelLibrary.Soldier, m => new InstancedBatch(m, Visuals.Lit, true, true));
+                _enemyFrames = Array.ConvertAll(ModelLibrary.Enemy, m => new InstancedBatch(m, Visuals.LitHorde, true));
+                _bossFrames = ModelLibrary.Boss;
+                _soldierFps = _soldierFrames.Length / ModelLibrary.ClipSeconds("soldier");
+                _enemyFps = _enemyFrames.Length / ModelLibrary.ClipSeconds("enemy");
+                _bossFps = _bossFrames.Length / ModelLibrary.ClipSeconds("boss");
+            }
             _slats = new InstancedBatch(MeshFactory.Cube, Visuals.Lit);
             _pieces = new InstancedBatch(MeshFactory.Piece, Visuals.Lit);
             _flames = new InstancedBatch(MeshFactory.Flame, Visuals.FxSolid);
@@ -393,8 +410,13 @@ namespace Plasma
                 if (arriving) continue;
                 var pos = new Vector3(sim.SquadX + ox, hop, Balance.SquadZ + oz - _recoil * 0.025f);
                 float glow = i >= n - 6 ? _gainPulse * 0.6f : 0;
-                _soldiers.Add(Matrix4x4.TRS(pos, Quaternion.identity, new Vector3(squadScale, squadScale * 1.35f, squadScale)), Palette.Squad, glow);
-                _shadows.Add(Matrix4x4.TRS(pos + new Vector3(0.1f, 0.012f, -0.06f), Quaternion.identity, new Vector3(0.5f, 1, 0.42f)), new Color(0, 0, 0.05f, 0.4f));
+                if (_soldierFrames != null)
+                {
+                    int f = (int)(time * _soldierFps + i * 1.37f) % _soldierFrames.Length;
+                    _soldierFrames[f].Add(Matrix4x4.TRS(pos, Quaternion.identity, Vector3.one * SoldierModelH), Palette.Squad, glow);
+                }
+                else _soldiers.Add(Matrix4x4.TRS(pos, Quaternion.identity, new Vector3(squadScale, squadScale * 1.35f, squadScale)), Palette.Squad, glow);
+                if (!QualityManager.High) _shadows.Add(Matrix4x4.TRS(pos + new Vector3(0.1f, 0.012f, -0.06f), Quaternion.identity, new Vector3(0.5f, 1, 0.42f)), new Color(0, 0, 0.05f, 0.4f));
             }
             foreach (var a in _arrivals)
             {
@@ -403,12 +425,15 @@ namespace Plasma
                 BattleSim.FormationOffset(Mathf.Min(a.Slot, Mathf.Max(0, n - 1)), out float ox, out float oz);
                 var target = new Vector3(sim.SquadX + ox, 0, oz);
                 var p = Vector3.Lerp(a.A, target, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 1.2f;
-                _soldiers.Add(Matrix4x4.TRS(p, Quaternion.identity, Vector3.one * squadScale), Palette.Squad, 0.5f * (1 - k));
+                if (_soldierFrames != null) _soldierFrames[0].Add(Matrix4x4.TRS(p, Quaternion.identity, Vector3.one * SoldierModelH), Palette.Squad, 0.5f * (1 - k));
+                else _soldiers.Add(Matrix4x4.TRS(p, Quaternion.identity, Vector3.one * squadScale), Palette.Squad, 0.5f * (1 - k));
                 _sparks.Add(Matrix4x4.TRS(p + Vector3.up * 0.3f, Quaternion.identity, Vector3.one * 0.5f), new Color(1f, 0.75f, 0.2f, 0.45f * (1 - k)));
             }
             _soldiers.Flush();
+            if (_soldierFrames != null) foreach (var b in _soldierFrames) b.Flush();
 
             // ---- horde ----
+            float walkRate = _enemyFps * Mathf.Clamp(sim.MarchSpeed / 0.8f, 0.8f, 2.2f);
             for (int i = 0; i < sim.EnemyCount; i++)
             {
                 if (!sim.EnemyAlive[i]) continue;
@@ -417,7 +442,13 @@ namespace Plasma
                 bool brute = sim.EnemyBrute[i];
                 float s = brute ? 1.55f : 1.18f;
                 float fl = i < _enemyFlash.Length ? Mathf.Max(0, _enemyFlash[i]) * 0.7f : 0;
-                if (z < LodZ)
+                if (_enemyFrames != null && z < EnemyModelMaxZ)
+                {
+                    float h = brute ? BruteModelH : EnemyModelH;
+                    int f = (int)(time * walkRate + (i * 0.618f % 1f) * _enemyFrames.Length) % _enemyFrames.Length;
+                    _enemyFrames[f].Add(Matrix4x4.TRS(new Vector3(sim.EnemyX[i], 0, z), faceUs, Vector3.one * h), brute ? Palette.Brute : Palette.Enemy, fl);
+                }
+                else if (z < LodZ)
                 {
                     float bob = Mathf.Abs(Mathf.Sin(time * 7 + i * 0.37f)) * 0.035f;
                     _enemies.Add(Matrix4x4.TRS(new Vector3(sim.EnemyX[i], bob, z), faceUs, new Vector3(s, s, s)), brute ? Palette.Brute : Palette.Enemy, fl);
@@ -426,6 +457,7 @@ namespace Plasma
             }
             _enemies.Flush();
             _enemiesLod.Flush();
+            if (_enemyFrames != null) foreach (var b in _enemyFrames) b.Flush();
 
             // ---- boss ----
             if (sim.BossAlive && sim.BossZ < DrawMaxZ)
@@ -436,8 +468,15 @@ namespace Plasma
                 var rot = faceUs * Quaternion.Euler(0, Mathf.Sin(time * 4) * 6 * walk, Mathf.Sin(time * 8) * 2 * walk);
                 var bp = new Vector3(sim.BossX, stomp, sim.BossZ);
                 _mpb.Clear(); _mpb.SetColor("_Color", Palette.BossJacket); _mpb.SetFloat("_Flash", _bossFlash * 0.75f);
-                Graphics.DrawMesh(MeshFactory.Boss, Matrix4x4.TRS(bp, rot, Vector3.one * bs), Visuals.Lit, 0, null, 0, _mpb);
-                _shadows.Add(Matrix4x4.TRS(new Vector3(sim.BossX, 0.015f, sim.BossZ), Quaternion.identity, new Vector3(bs * 0.8f, 1, bs * 0.55f)), new Color(0, 0, 0.05f, 0.4f));
+                if (_bossFrames != null)
+                {
+                    float bh = sim.Spec.BigBoss ? BigBossModelH : BossModelH;
+                    _bossAnim += Time.deltaTime * _bossFps * (walk > 0.5f ? 1f : 0.35f);
+                    var brot = faceUs * Quaternion.Euler(0, Mathf.Sin(time * 2) * 5, 0);
+                    Graphics.DrawMesh(_bossFrames[(int)_bossAnim % _bossFrames.Length], Matrix4x4.TRS(new Vector3(sim.BossX, 0, sim.BossZ), brot, Vector3.one * bh), Visuals.Lit, 0, null, 0, _mpb, QualityManager.High, true);
+                }
+                else Graphics.DrawMesh(MeshFactory.Boss, Matrix4x4.TRS(bp, rot, Vector3.one * bs), Visuals.Lit, 0, null, 0, _mpb, QualityManager.High, true);
+                if (!QualityManager.High) _shadows.Add(Matrix4x4.TRS(new Vector3(sim.BossX, 0.015f, sim.BossZ), Quaternion.identity, new Vector3(bs * 0.8f, 1, bs * 0.55f)), new Color(0, 0, 0.05f, 0.4f));
                 if (sim.BossRevealed)
                 {
                     var top = new Vector3(sim.BossX, bs * 1.25f + 0.25f, sim.BossZ);
@@ -467,7 +506,7 @@ namespace Plasma
                 var tp = new Vector3(Balance.ConvX, BeltTop, z);
                 float pop = 1 + flash * 0.18f;
                 _tiles.Add(Matrix4x4.TRS(tp, tileRot, new Vector3(1.62f * pop, 1.12f * pop, 0.24f)), Palette.Gate(v), flash * 0.8f);
-                if (z < 40f) _shadows.Add(Matrix4x4.TRS(new Vector3(tp.x + 0.12f, BeltTop + 0.01f, z - 0.45f), Quaternion.identity, new Vector3(1.6f, 1, 0.75f)), new Color(0, 0, 0.05f, 0.45f));
+                if (z < 40f && !QualityManager.High) _shadows.Add(Matrix4x4.TRS(new Vector3(tp.x + 0.12f, BeltTop + 0.01f, z - 0.45f), Quaternion.identity, new Vector3(1.6f, 1, 0.75f)), new Color(0, 0, 0.05f, 0.45f));
                 if (z < 60f) _text.Add("+" + v, tp + tileRot * new Vector3(0, 0.56f, -0.14f), tileRot, 0.56f, Color.white, Palette.Outline, 0.09f);
             }
             foreach (var f in _flyTiles)
@@ -494,10 +533,10 @@ namespace Plasma
                 if (t < 0.35f)   // still a cloth heap that starts to puff up
                 {
                     float k = t / 0.35f;
-                    Graphics.DrawMesh(MeshFactory.Cloth, Matrix4x4.TRS(gp, Quaternion.identity, new Vector3(2.5f, 1f + 2.2f * k * k, 1.15f)), Visuals.Lit, 0, null, 0, _mpb);
+                    Graphics.DrawMesh(MeshFactory.Cloth, Matrix4x4.TRS(gp, Quaternion.identity, new Vector3(2.5f, 1f + 2.2f * k * k, 1.15f)), Visuals.Lit, 0, null, 0, _mpb, QualityManager.High, true);
                 }
-                else Graphics.DrawMesh(MeshFactory.Pillow, Matrix4x4.TRS(gp, Quaternion.identity, gs), Visuals.Lit, 0, null, 0, _mpb);
-                _shadows.Add(Matrix4x4.TRS(gp + new Vector3(0.15f, 0.03f, -0.35f), Quaternion.identity, new Vector3(gs.x * 1.05f, 1, 1.3f)), new Color(0, 0, 0.05f, 0.5f * inflate));
+                else Graphics.DrawMesh(MeshFactory.Pillow, Matrix4x4.TRS(gp, Quaternion.identity, gs), Visuals.Lit, 0, null, 0, _mpb, QualityManager.High, true);
+                if (!QualityManager.High) _shadows.Add(Matrix4x4.TRS(gp + new Vector3(0.15f, 0.03f, -0.35f), Quaternion.identity, new Vector3(gs.x * 1.05f, 1, 1.3f)), new Color(0, 0, 0.05f, 0.5f * inflate));
                 if (inflate > 0.5f)
                 {
                     var labelRot = Quaternion.Euler(8, 0, 0);
@@ -520,12 +559,12 @@ namespace Plasma
                 if (_collapseT < 0.15f)
                 {
                     float k = _collapseT / 0.15f;
-                    Graphics.DrawMesh(MeshFactory.Pillow, Matrix4x4.TRS(gp, Quaternion.identity, new Vector3(2.45f * (1 + 0.2f * k), 1.55f * (1 - 0.75f * k), 1.05f * (1 + 0.3f * k))), Visuals.Lit, 0, null, 0, _mpb);
+                    Graphics.DrawMesh(MeshFactory.Pillow, Matrix4x4.TRS(gp, Quaternion.identity, new Vector3(2.45f * (1 + 0.2f * k), 1.55f * (1 - 0.75f * k), 1.05f * (1 + 0.3f * k))), Visuals.Lit, 0, null, 0, _mpb, QualityManager.High, true);
                 }
                 else
                 {
                     float k = (_collapseT - 0.15f) / 0.55f;
-                    Graphics.DrawMesh(MeshFactory.Cloth, Matrix4x4.TRS(gp + new Vector3(0, -0.35f * k * k, 0.1f), Quaternion.identity, new Vector3(2.9f, 1.6f * (1 - 0.5f * k), 1.35f)), Visuals.Lit, 0, null, 0, _mpb);
+                    Graphics.DrawMesh(MeshFactory.Cloth, Matrix4x4.TRS(gp + new Vector3(0, -0.35f * k * k, 0.1f), Quaternion.identity, new Vector3(2.9f, 1.6f * (1 - 0.5f * k), 1.35f)), Visuals.Lit, 0, null, 0, _mpb, QualityManager.High, true);
                 }
             }
             foreach (var b in _badges)
