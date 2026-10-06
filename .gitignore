@@ -1,0 +1,22 @@
+# Unity generated
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Bb]uilds/
+/[Bb]uild/
+/MemoryCaptures/
+*.csproj
+*.sln
+*.pidb
+*.userprefs
+.vs/
+.idea/
+.DS_Store
+# signing secrets - NEVER commit
+*.keystore
+*.jks
+keystore.properties
+# capture output
+/captures/

@@ -1,0 +1,14 @@
+{
+    "name": "Plasma.Editor",
+    "rootNamespace": "Plasma.EditorTools",
+    "references": ["Plasma.Sim", "Plasma.Runtime"],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
