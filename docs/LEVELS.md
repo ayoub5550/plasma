@@ -27,7 +27,7 @@ deterministically (seed = N·7919+17).
 | Jackpot (last gate value) | `Nice(min(99, (18 + 4·t)·(1.6 boss)·(0.85 relief)))` | `TopBase, TopPerLevel, TopExp` |
 | Gate ladder | `3 + min(3, L/8)` gates, geometric 1 → jackpot, snapped to 1,2,3,5,8,10,15,20,25,30,40,50,75,99 | in code |
 | Gate HP | `(4 + 9·(v − 1))·(1 + 0.06·t)` | `GateHp*` |
-| Conveyor | one tile every 1.3 u at 3.6 u/s ≈ **2.8 tiles/s**; tile = `round(value × TileBonus)` soldiers | `Balance.Conv*` |
+| Conveyor | one tile every 1.3 u at 3.6 u/s ≈ **2.8 tiles/s**; tile = `round(value × TileBonus)` soldiers (= the printed number); belt starts at **+1**; catch reach 0.75 u | `Balance.Conv*`, `StartTileValue`, `CatchReach` |
 | Squad damage | 1.25 dps per soldier × Firepower × Fire rate; up to 6 parallel tracer streams | `Balance.FireInterval, BaseDamage` |
 | Boss HP | `max(30, 0.12 · horde HP)` (×3 on boss levels); walks inside the horde at 80 % depth (90 % boss level) | `BossHpMult, BigBossMult` |
 | Boss bite | `(6 + 0.4·L)` soldiers/s while touching the squad (×2 big boss) | in code |
@@ -61,12 +61,15 @@ deterministically (seed = N·7919+17).
 
 `tools/simharness/run.sh 100 <skill>` — full tables in `docs/balance/career_skill_*.md`.
 
-| Bot skill | Meaning | Result v0.2.1 |
-|---|---|---|
-| 1.0 | fast reactions, dashes under pressure | 100/100 first try |
-| 0.6 | good player | 100 levels, ~100 attempts |
-| 0.3 | casual | 100 levels, ~109 attempts (occasional retries from L37) |
-| 0.0 | very slow reactions | 100 levels, ~168 attempts (retries from L37, max 5) |
+| Bot skill | Meaning | Result v0.2.1 – v0.3.1 | Result v0.4.0 (belt starts +1, reach 0.75) |
+|---|---|---|---|
+| 1.0 | fast reactions, dashes under pressure | 100/100 first try | 100/100 first try |
+| 0.6 | good player | 100 levels, ~100 attempts | 100 attempts |
+| 0.3 | casual | 100 levels, ~109 attempts (occasional retries from L37) | 101 attempts |
+| 0.0 | very slow reactions | 100 levels, ~168 attempts (retries from L37, max 5) | 110 attempts (retries from L50, max 3) |
+
+v0.4.0 made the start much friendlier for slow players (the belt pays from the first second), which widens the
+"too gentle" gap below — calibrate with real players before adding pressure back.
 
 (v0.2.1 brought the dock and horde closer to the squad — `DockZ 9.6`, `HordeStartZ 11` — and narrowed the
 horde lane to 14 × 0.27 u, which made the game harder for slow players.)

@@ -24,14 +24,21 @@ Legend: ✅ done · 🟡 partly · ⬜ todo · 👤 needs the owner (accounts, m
 - ✅ CC0 3D characters (Kenney soldier/enemy, Quaternius boss) baked to instanced flipbooks with walk/idle animation
 - ✅ Real-time shadows + HDR bloom (High), blob shadows (Low); Settings → Graphics; auto pick + fps watchdog
 
-## M1.5 — "Feels great on a phone" (v0.4) — next
-- ⬜👤 Device test of v0.3.0 on 2–3 phones (High and Low) (low/mid/high). Record FPS, heat, touch feel. Fill `docs/TESTING.md §4` checklist.
+## M1.3 — Own characters ✅ (v0.3.1, 2026-10-06)
+- ✅ Boss, soldier and horde grunt modelled in Blender by script (`tools/models/blender/`), no third-party art left
+
+## M1.4 — Numbers & collecting ✅ (v0.4.0, 2026-10-06)
+- ✅ Printed numbers = soldiers received (Tile bonus included), one merged gain counter, no "+0" flash, readable tile labels, 12.3K counter
+- ✅ Belt pays from the first second (+1), wider catch reach, glowing collect pad, tutorial "stand by the numbers"
+
+## M1.5 — "Feels great on a phone" (v0.5) — next
+- ⬜👤 Device test of v0.4.0 on 2–3 phones (High and Low) (low/mid/high). Record FPS, heat, touch feel. Fill `docs/TESTING.md §4` checklist.
 - ⬜ Difficulty: calibrate with real players — the bot wins everything first try (see `docs/LEVELS.md §4`)
 - ⬜ Performance: frame budget overlay (debug), verify 60 fps with 2800 enemies on a mid phone, quality toggle ✅ v0.3 (extend Low: enemy cap / LOD distance if needed)
 - ⬜ Juice: coin fly-to-counter, walk cycle (squash) for horde & boss, screen-edge red flash on damage, tile "clack" on the belt
 - ⬜ Music: longer loops (menu, battle); volume sliders
 
-## M2 — Content & depth (v0.5)
+## M2 — Content & depth (v0.6)
 - ⬜ Enemy variety: runners (fast, low HP), shield bearers (block 1 column), bombers (explode on death → kill neighbours), flyers (skip the line)
 - ⬜ Gate variety: **×2 multiplier gates** (rare, purple), **negative gates** (−10, red: avoid), **charge gates** (value grows while you shoot them — the grey "+0 → +1" behaviour in the reference), **weapon gates** (switch to shotgun/laser for 10 s)
 - ⬜ Boss variety: 5 boss archetypes with one gimmick each (summoner, charger, shield phase, splitter, giant)

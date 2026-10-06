@@ -13,11 +13,15 @@ docs are in English; `README.md` is bilingual.
 
 **Plasma — Squad vs Horde**: an infinite-level, portrait, one-finger Android shooter that reproduces the
 mechanic of the owner's reference ad (`docs/reference/reference_ad.mp4`, analysis in `docs/reference/README.md`):
-shoot the **upgrade gate** in the dock to upgrade every tile on the left **conveyor** (+0 → +1 → +5 → … → +99),
+shoot the **upgrade gate** in the dock to upgrade every tile on the left **conveyor** (+1 → +5 → … → +99; starts at +1 since v0.4),
 stand at the belt end to **collect** tiles (+N soldiers each), and stop the **red horde** with the **boss** walking
 inside it. Full design: `docs/GDD.md`. Difficulty: `docs/LEVELS.md`.
 
-Status **v0.3.1 (2026-10-06)** — **own characters modelled in Blender by script** (`tools/models/blender/`): the boss
+Status **v0.4.0 (2026-10-06)** — **numbers fixed + "soldiers for standing in front of the numbers"** (owner request): the belt pays
+from the first second (+1), a glowing collect pad shows where to stand, every printed number (tile, gate, badge) is exactly the
+soldiers you get, one merged gold "+N" counter instead of stacked pops. APK 0.4.0 (code 6), same signing key as 0.3.1 (updates in place).
+
+v0.3.1 (2026-10-06) — **own characters modelled in Blender by script** (`tools/models/blender/`): the boss
 (red open jacket over white shirt, blond spiky hair + beard, cleaver-greatsword on the shoulder), the helmeted squad soldier and the
 round-headed horde grunt — all original work, no third-party art left in the game. APK 0.3.1 (code 5).
 
@@ -135,7 +139,7 @@ Before every push: (1) `tools/simharness/run.sh 100 0.3` — no new walls; (2) `
 
 ## 8. What to do next (priority order) — see `docs/ROADMAP.md` for the full plan
 
-1. **Device test v0.3.0 APK** (owner): FPS in High vs Low (Settings → Graphics), whether the watchdog drops to Low, shadows/bloom on the
+1. **Device test the v0.4.0 APK** (owner): FPS in High vs Low (Settings → Graphics), whether the watchdog drops to Low, shadows/bloom on the
    phone's GPU, touch feel (`BattleView.DragSensitivity`), readability, Arabic text, audio. Collect concrete notes.
    Visual gaps still open vs the ad (`docs/reference/compare_v0.3.1.png`): the boss now matches the ad's design but stands at the far
    end of the lane, partly under the HUD progress bar (ad: closer, mid-upper screen) — fix with camera/boss approach (balance) or a lower HUD;
@@ -150,6 +154,20 @@ Before every push: (1) `tools/simharness/run.sh 100 0.3` — no new walls; (2) `
 7. **Store:** Play Console listing (AR/EN), privacy policy, content rating, signed AAB, closed testing track.
 
 ## 9. Change log
+
+* **v0.4.0 (2026-10-06)** — owner: "fix the number problems and make the player get soldiers for standing in front of the numbers".
+  Problems found in the v0.3.1 capture (`docs/reference/compare_v0.4.0_numbers.png`) and fixed:
+  (1) gain pops stacked into unreadable piles ("+7 +7", "+27 +135") → `BattleView.AddGain`: one gold counter above the squad counter
+  that sums a streak (+5 → +10 → …), follows the squad, restarts every 2 s, rises/fades 0.45 s after the last tile;
+  (2) tiles/gate printed the base value but the squad received `round(value × TileBonus)` (+5 printed, +7 received) →
+  `BattleSim.GainFor(v)`; tiles, gate label and flying badge all print the effective gain (`BattleView.TileLabel`, cached strings);
+  (3) every gate break flashed the whole belt back to "+0" (wave `From` defaulted to 0) → `_beltValue` tracks the shown value;
+  (4) tile labels sat mid-face and were hidden by the tile in front → upper face (0.7), 4-5 char values shrink to fit;
+  (5) squad counter ≥ 10 000 prints 12.3K. Mechanic: `Balance.StartTileValue = 1` (belt starts at +1, gates ≤ belt value skipped,
+  L1 ladder +5 → +20) and `CatchReach` 0.55 → 0.75; glowing **collect pad** + chevrons on the deck at the belt end
+  (`BattleView.DrawCollectPad`, solid while the squad is on it). Tutorial order: drag → "stand by the numbers = soldiers" →
+  "shoot the gate: bigger numbers" → horde (two-line hints, box 190 px). Sweep: skill 0 168 → 110 attempts, 0.3 109 → 101,
+  0.6/1.0 100 (`docs/LEVELS.md §4`). APK 0.4.0 code 6, cert `6f11a828…` (same as 0.3.1).
 
 * **v0.3.1 (2026-10-06)** — owner asked to make the art in Blender: Blender 4.2.3 (headless, CPU) + `tools/models/blender/plasmakit.py`;
   original boss (`boss.py`: metaball body, V-cut open jacket over shirt body, 1.22× cartoon head, 17-bone rig, 1 s stomp walk, sword

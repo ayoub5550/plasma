@@ -55,7 +55,7 @@ namespace Plasma
         readonly List<Puff> _puffList = new List<Puff>(1024);
         struct Piece { public Vector3 P, V, Spin; public float T, Life, Size; public Color C; }
         readonly List<Piece> _pieceList = new List<Piece>(256);
-        struct Floater { public string S; public Vector3 P; public float T, Life, Size; public Color C; }
+        struct Floater { public string S; public Vector3 P; public float T, Life, Size; public Color C; public bool Gain; public int Sum; public float Age; }
         readonly List<Floater> _floaters = new List<Floater>();
         struct FlyTile { public Vector3 A, B; public float T, Life; public int Value; public bool Caught; }
         readonly List<FlyTile> _flyTiles = new List<FlyTile>();
@@ -73,7 +73,7 @@ namespace Plasma
             Sim = sim;
             _enemyFlash = new float[sim.EnemyCount];
             _puffList.Clear(); _pieceList.Clear(); _floaters.Clear(); _flyTiles.Clear(); _badges.Clear(); _arrivals.Clear(); _waves.Clear();
-            _collapseT = -1; _gateInflateT = 9; _slowmo = 0;
+            _collapseT = -1; _gateInflateT = 9; _slowmo = 0; _beltValue = sim.ConveyorValue;
             _acc = 0; _dragging = false;
             foreach (var e in sim.Events) Handle(e);
             sim.Events.Clear();
@@ -259,19 +259,21 @@ namespace Plasma
                 }
                 case SimEventType.ConveyorUpgraded:
                 {
-                    int from = _waves.Count > 0 ? _waves[_waves.Count - 1].To : 0;
+                    int from = _beltValue;   // v0.4 fix: was 0 when no wave was active -> the belt flashed back to "+0" on every upgrade
+                    _beltValue = e.Value;
                     _waves.Add(new Wave { T = -0.45f, From = from, To = e.Value }); // starts when the badge lands
                     if (_waves.Count > 4) _waves.RemoveAt(0);
                     break;
                 }
                 case SimEventType.TileCaught:
                 {
+                    _lastTileTierValue = Sim.ConveyorValue;
                     var a = new Vector3(Balance.ConvX, BeltTop, Balance.ConvEndZ);
                     var b = new Vector3(Sim.SquadX, 0.4f, 0.2f);
                     _flyTiles.Add(new FlyTile { A = a, B = b, T = 0, Life = 0.22f, Value = e.Value, Caught = true });
                     if (e.Value > 0)
                     {
-                        Float("+" + e.Value, new Vector3(Sim.SquadX - Sim.SquadRadius * 0.55f, 1.0f, Sim.SquadRadius * 0.4f + 0.9f), Palette.Gold, 0.6f);
+                        AddGain(e.Value);
                         int have = Mathf.Min(Sim.Soldiers, Balance.SoldierVisualCap);
                         int n = Mathf.Min(e.Value, 6);
                         for (int i = 0; i < n && _arrivals.Count < 24; i++)
@@ -306,11 +308,24 @@ namespace Plasma
             _pieceList.Add(new Piece { P = p, V = new Vector3(R(-2f, 2f), R(1f, 4f), R(-3f, 0f)), Life = 0.25f, Size = R(0.12f, 0.25f), C = new Color(1f, 0.8f, 0.3f, 1f), Spin = Vector3.zero });
         }
 
-        void Float(string text, Vector3 p, Color c, float size)
+        /// <summary>
+        /// One gold "+N" counter above the squad that sums consecutive tiles (+5, +10, +15 ...) instead of
+        /// stacking a new label per tile (v0.3.1 showed overlapping "+7 +7" / "+27 +135" piles).
+        /// It follows the squad while tiles keep coming and rises/fades 0.45 s after the last one.
+        /// </summary>
+        void AddGain(int v)
         {
+            for (int i = _floaters.Count - 1; i >= 0; i--)
+            {
+                var f = _floaters[i];
+                if (!f.Gain || f.T > GainHold || f.Age > 2f) continue;   // a long streak starts a fresh counter every 2 s
+                f.Sum += v; f.S = "+" + f.Sum; f.T = 0; _floaters[i] = f;
+                return;
+            }
             if (_floaters.Count > 14) _floaters.RemoveAt(0);
-            _floaters.Add(new Floater { S = text, T = 0, Life = 0.8f, P = p, C = c, Size = size });
+            _floaters.Add(new Floater { S = "+" + v, Sum = v, T = 0, Life = GainHold + 0.6f, C = Palette.Gold, Size = 0.62f, Gain = true });
         }
+        const float GainHold = 0.45f;
 
         void UpdateEffects(float dt, float realDt)
         {
@@ -341,7 +356,7 @@ namespace Plasma
             }
             for (int i = _floaters.Count - 1; i >= 0; i--)
             {
-                var f = _floaters[i]; f.T += realDt;
+                var f = _floaters[i]; f.T += realDt; f.Age += realDt;
                 if (f.T > f.Life) { _floaters.RemoveAt(i); continue; }
                 _floaters[i] = f;
             }
@@ -397,6 +412,8 @@ namespace Plasma
             float time = Time.time;
             var camRot = Cam != null ? Cam.transform.rotation : Quaternion.identity;
             Quaternion faceUs = Quaternion.Euler(0, 180, 0);
+
+            DrawCollectPad(time);
 
             // ---- squad ----
             int n = Mathf.Min(sim.Soldiers, Balance.SoldierVisualCap);
@@ -507,7 +524,14 @@ namespace Plasma
                 float pop = 1 + flash * 0.18f;
                 _tiles.Add(Matrix4x4.TRS(tp, tileRot, new Vector3(1.62f * pop, 1.12f * pop, 0.24f)), Palette.Gate(v), flash * 0.8f);
                 if (z < 40f && !QualityManager.High) _shadows.Add(Matrix4x4.TRS(new Vector3(tp.x + 0.12f, BeltTop + 0.01f, z - 0.45f), Quaternion.identity, new Vector3(1.6f, 1, 0.75f)), new Color(0, 0, 0.05f, 0.45f));
-                if (z < 60f) _text.Add("+" + v, tp + tileRot * new Vector3(0, 0.56f, -0.14f), tileRot, 0.56f, Color.white, Palette.Outline, 0.09f);
+                if (z < 60f)
+                {
+                    // the number printed is exactly what the squad receives (Tile-bonus upgrade included);
+                    // upper part of the face so the tile in front never hides it; 3-4 digit values shrink to fit
+                    string lbl = TileLabel(v);
+                    float ls = lbl.Length <= 3 ? 0.56f : lbl.Length == 4 ? 0.47f : 0.4f;
+                    _text.Add(lbl, tp + tileRot * new Vector3(0, 0.7f, -0.14f), tileRot, ls, Color.white, Palette.Outline, 0.09f);
+                }
             }
             foreach (var f in _flyTiles)
             {
@@ -515,7 +539,7 @@ namespace Plasma
                 Vector3 p; Quaternion r; float s;
                 if (f.Caught) { p = Vector3.Lerp(f.A, f.B, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 0.8f; r = tileRot; s = 1 - k * 0.7f; }
                 else { p = new Vector3(f.A.x, f.A.y - 6f * k * k, f.A.z - 1.6f * k); r = tileRot * Quaternion.Euler(-160 * k, 0, 0); s = 1; }
-                _tiles.Add(Matrix4x4.TRS(p, r, new Vector3(1.62f * s, 1.12f * s, 0.24f * s)), Palette.Gate(f.Value), f.Caught ? 0.4f : 0);
+                _tiles.Add(Matrix4x4.TRS(p, r, new Vector3(1.62f * s, 1.12f * s, 0.24f * s)), Palette.Gate(f.Caught ? _lastTileTierValue : f.Value), f.Caught ? 0.4f : 0);
             }
             _tiles.Flush();
 
@@ -540,7 +564,8 @@ namespace Plasma
                 if (inflate > 0.5f)
                 {
                     var labelRot = Quaternion.Euler(8, 0, 0);
-                    _text.Add("+" + g.Value, gp + new Vector3(0, 0.8f * sy, -0.74f), labelRot, 0.95f * sy, Color.white, Palette.Outline, 0.09f);
+                    string gl = TileLabel(g.Value);
+                    _text.Add(gl, gp + new Vector3(0, 0.8f * sy, -0.74f), labelRot, (gl.Length <= 3 ? 0.95f : 0.8f) * sy, Color.white, Palette.Outline, 0.09f);
                 }
                 if (sim.GateAvailable)
                 {
@@ -579,7 +604,7 @@ namespace Plasma
                 Graphics.DrawMesh(MeshFactory.Sphere, Matrix4x4.TRS(p, camRot, Vector3.one * s * 0.95f), Visuals.FxAdd, 0, null, 0, _mpb);
                 _mpb.Clear(); _mpb.SetColor("_Color", new Color(0.7f, 0.95f, 1f, alpha));
                 Graphics.DrawMesh(MeshFactory.Ring, Matrix4x4.TRS(p, camRot, Vector3.one * s), Visuals.FxFlat, 0, null, 0, _mpb);
-                _overlay.Add("+" + b.Value, p, camRot, 0.4f * s, new Color(1, 1, 1, alpha), Palette.Outline, 0.1f);
+                _overlay.Add(TileLabel(b.Value), p, camRot, 0.4f * s, new Color(1, 1, 1, alpha), Palette.Outline, 0.1f);
             }
 
             // ---- tracers ----
@@ -622,10 +647,20 @@ namespace Plasma
             {
                 var lp = new Vector3(sim.SquadX, 0.95f + sim.SquadRadius * 0.25f, Balance.SquadZ + sim.SquadRadius * 0.55f + 0.2f);
                 float pulse = 1 + _gainPulse * 0.2f;
-                _overlay.Add(sim.Soldiers.ToString(), lp, camRot, 0.5f * pulse, Color.white, Palette.Outline, 0.11f);
+                _overlay.Add(CountLabel(sim.Soldiers), lp, camRot, 0.5f * pulse, Color.white, Palette.Outline, 0.11f);
             }
             foreach (var f in _floaters)
             {
+                if (f.Gain)
+                {
+                    float r = sim.SquadRadius;
+                    float up = Mathf.Max(0, f.T - GainHold);
+                    var gp = new Vector3(sim.SquadX - 0.15f, 2.15f + r * 0.25f + up * 2.2f, Balance.SquadZ + r * 0.55f + 0.2f);   // straight above the squad counter
+                    float gs = f.Size * (f.T < 0.12f ? Mathf.Lerp(1.45f, 1f, f.T / 0.12f) : 1f) * (f.Sum >= 1000 ? 0.85f : 1f);
+                    var gc = f.C; gc.a = 1 - Mathf.Clamp01(up / 0.6f);
+                    _overlay.Add(f.S, gp, camRot, gs, gc, Palette.Outline, 0.12f);
+                    continue;
+                }
                 float k = f.T / f.Life;
                 float s = f.Size * (k < 0.15f ? Mathf.Lerp(1.6f, 1f, k / 0.15f) : 1f);
                 var c = f.C; c.a = 1 - Mathf.Clamp01((k - 0.6f) / 0.4f);
@@ -633,6 +668,50 @@ namespace Plasma
             }
             _text.Flush();
             _overlay.Flush();
+        }
+
+        /// <summary>"+N" where N = soldiers a tile of base value v gives (cached strings: no per-frame garbage).</summary>
+        string TileLabel(int v)
+        {
+            int g = Sim.GainFor(v);
+            if (!_labelCache.TryGetValue(g, out var s)) { s = "+" + g; _labelCache[g] = s; }
+            return s;
+        }
+        readonly Dictionary<int, string> _labelCache = new Dictionary<int, string>();
+        int _lastTileTierValue, _beltValue;
+
+        /// <summary>Squad counter: exact up to 9999, then 12.3K / 123K so the label never gets wider than the squad.</summary>
+        static string CountLabel(int n)
+            => n < 10000 ? n.ToString() : n < 100000 ? (n / 1000f).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "K" : (n / 1000) + "K";
+
+        /// <summary>
+        /// Glowing pad on the deck next to the belt end: "stand here = soldiers". It pulses in the belt's colour while
+        /// the squad is elsewhere and lights up solid while the squad stands on it (= every arriving tile is caught).
+        /// Its right edge is where the squad's left edge must be (Balance.ConvMaxX + CatchReach).
+        /// </summary>
+        void DrawCollectPad(float time)
+        {
+            var sim = Sim;
+            if (sim.TileGain <= 0) return;
+            float x0 = Balance.DeckMinX, x1 = Balance.ConvMaxX + Balance.CatchReach;
+            const float z0 = -0.9f, z1 = 1.5f;
+            bool on = sim.SquadAtBelt;
+            var c = Palette.Gate(sim.ConveyorValue);
+            float a = on ? 0.55f : 0.18f + 0.17f * (0.5f + 0.5f * Mathf.Sin(time * 6f));
+            var flat = Quaternion.Euler(90, 0, 0);
+            var mid = new Vector3((x0 + x1) * 0.5f, 0.012f, (z0 + z1) * 0.5f);
+            DrawFlat(mid, flat, new Vector2(x1 - x0, z1 - z0), new Color(c.r, c.g, c.b, a));
+            // bright edge on the deck side + three chevrons pointing at the belt
+            DrawFlat(new Vector3(x1 - 0.03f, 0.014f, mid.z), flat, new Vector2(0.06f, z1 - z0), new Color(1, 1, 1, on ? 0.9f : 0.35f + a));
+            if (!on)
+                for (int i = 0; i < 3; i++)
+                {
+                    float cz = z0 + 0.5f + i * 0.7f;
+                    float wob = Mathf.Sin(time * 6f - i) * 0.05f;
+                    var cp = new Vector3((x0 + x1) * 0.5f + wob, 0.016f, cz);
+                    DrawFlat(cp + new Vector3(0, 0, 0.1f), Quaternion.Euler(90, 0, -45), new Vector2(0.3f, 0.07f), new Color(1, 1, 1, 0.75f));
+                    DrawFlat(cp + new Vector3(0, 0, -0.1f), Quaternion.Euler(90, 0, 45), new Vector2(0.3f, 0.07f), new Color(1, 1, 1, 0.75f));
+                }
         }
 
         void DrawFlat(Vector3 p, Quaternion rot, Vector2 size, Color c)

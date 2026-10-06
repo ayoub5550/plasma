@@ -16,7 +16,7 @@ namespace Plasma.Sim
     ///  * a conveyor of "+N" tiles slides toward the player on the left; standing next to the
     ///    belt's end collects each arriving tile (+N soldiers);
     ///  * an upgrade gate inflates in the dock; shooting it down upgrades every tile on the belt
-    ///    to the gate's value (+0 -> +1 -> +5 -> ... -> +99);
+    ///    to the gate's value (+1 -> +5 -> ... -> +99; the belt starts at Balance.StartTileValue);
     ///  * a red horde marches down the right lane with the boss walking inside it; every enemy
     ///    that reaches the squad kills soldiers; the boss stops at the squad and keeps eating.
     /// </summary>
@@ -83,6 +83,7 @@ namespace Plasma.Sim
         {
             Mods = mods; Endless = endless;
             Soldiers = MaxSoldiers = Math.Max(1, mods.StartSoldiers);
+            ConveyorValue = Balance.StartTileValue;   // gates <= this value are skipped by StartWave
             SquadX = TargetX = 0.6f;
             BuildFormation();
             StartWave(spec);
@@ -219,7 +220,10 @@ namespace Plasma.Sim
         public bool SquadAtBelt => SquadX - SquadRadius <= Balance.ConvMaxX + Balance.CatchReach;
         /// <summary>Squad x at which the belt end is reachable (collect position).</summary>
         public float BeltX => Math.Max(Balance.SquadMinX, Balance.ConvMaxX + Balance.CatchReach + SquadRadius - 0.15f);
-        public int TileGain => ConveyorValue <= 0 ? 0 : Math.Max(1, (int)Math.Round(ConveyorValue * Mods.GateMult));
+        public int TileGain => GainFor(ConveyorValue);
+        /// <summary>Soldiers a tile of base value v gives (Tile-bonus upgrade included). The view prints THIS number on
+        /// tiles, gates and badges, so what the player reads is exactly what the squad receives.</summary>
+        public int GainFor(int v) => v <= 0 ? 0 : Math.Max(1, (int)Math.Round(v * Mods.GateMult));
 
         /// <summary>Progress 0..1 of the current level (horde + boss HP).</summary>
         public float Progress

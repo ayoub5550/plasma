@@ -225,11 +225,11 @@ namespace Plasma
             _banner.GetComponent<Outline>().effectDistance = new Vector2(7, -7);
             _banner.gameObject.SetActive(false);
 
-            _hintRt = UiKit.Box("Hint", _hud, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 150));
+            _hintRt = UiKit.Box("Hint", _hud, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 190));   // two-line hints (v0.4)
             _hintGroup = _hintRt.gameObject.AddComponent<CanvasGroup>(); _hintGroup.blocksRaycasts = false; _hintGroup.interactable = false;
             UiKit.Panel(_hintRt, new Color(0, 0, 0, 0.45f));
-            _hint = UiKit.Label(_hintRt, "", 66, Color.white);
-            _hintArrow = UiKit.Box("Arrow", _hintRt, new Vector2(0.5f, 0.5f), new Vector2(0, -95), new Vector2(120, 80));
+            _hint = UiKit.Label(_hintRt, "", 58, Color.white);
+            _hintArrow = UiKit.Box("Arrow", _hintRt, new Vector2(0.5f, 0.5f), new Vector2(0, -140), new Vector2(120, 80));
             UiKit.Label(_hintArrow, "V", 80, Palette.Gold);
             _hintRt.gameObject.SetActive(false);
         }
