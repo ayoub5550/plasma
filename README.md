@@ -11,7 +11,7 @@
 - 4 ترقيات دائمة، ووضع **بلا نهاية**، وواجهة **عربية وإنجليزية**، وإعدادات للأصوات والموسيقى والاهتزاز والرسوميات (عالية: ظلال حقيقية ووهج / منخفضة للهواتف الضعيفة)، وشرح تفاعلي في أول مستويين.
 - شخصيات ثلاثية الأبعاد مجانية الترخيص (CC0) من Kenney وQuaternius.
 
-الحالة: **v0.3.0** (نسخة تجريبية APK). خطة التطوير في [`docs/ROADMAP.md`](docs/ROADMAP.md)، وتصميم اللعبة في [`docs/GDD.md`](docs/GDD.md)، والمستويات والصعوبة في [`docs/LEVELS.md`](docs/LEVELS.md).
+الحالة: **v0.3.1** (شخصيات خاصة بنا مصنوعة في Blender) (نسخة تجريبية APK). خطة التطوير في [`docs/ROADMAP.md`](docs/ROADMAP.md)، وتصميم اللعبة في [`docs/GDD.md`](docs/GDD.md)، والمستويات والصعوبة في [`docs/LEVELS.md`](docs/LEVELS.md).
 **للمطورين ولوكلاء الذكاء الاصطناعي:** ابدأ بقراءة [`AGENTS.md`](AGENTS.md).
 
 ## English
@@ -42,7 +42,8 @@ tools/sandbox/setup_unity.sh                     # install Unity + Android toolc
 tools/simharness/run.sh 100 0.3                  # balance sweep (no Unity needed)
 tools/sandbox/unity.sh BuildAndroid Android      # → Builds/Plasma.apk
 ```
-Gameplay videos: [`docs/media/gameplay_v0.3.0_ar_level10.mp4`](docs/media/gameplay_v0.3.0_ar_level10.mp4) (Arabic UI, boss level) ·
-[`docs/media/gameplay_v0.3.0_en_level1.mp4`](docs/media/gameplay_v0.3.0_en_level1.mp4) (English UI, level 1 with tutorial hints) · side by side with the ad: [`docs/reference/compare_v0.3.0.png`](docs/reference/compare_v0.3.0.png)
+Gameplay videos: [`docs/media/gameplay_v0.3.1_ar_level10.mp4`](docs/media/gameplay_v0.3.1_ar_level10.mp4) (Arabic UI, boss level) ·
+[`docs/media/gameplay_v0.3.1_en_level1.mp4`](docs/media/gameplay_v0.3.1_en_level1.mp4) (English UI, level 1 with tutorial hints) · side by side with the ad: [`docs/reference/compare_v0.3.1.png`](docs/reference/compare_v0.3.1.png) ·
+our Blender-made characters: [`docs/media/models_v031.png`](docs/media/models_v031.png) (sources in `tools/models/blender/`)
 
 © 2026 Ayoub Teke. All rights reserved. Font Lalezar © The Lalezar Project Authors, SIL OFL 1.1. Character models by Kenney and Quaternius (CC0).

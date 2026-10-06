@@ -1,19 +1,20 @@
 [
  {
   "name": "soldier",
-  "src": "tools/models/src/kenney_mini_male_c.glb",
-  "clip": "idle",
+  "src": "tools/models/src/plasma_soldier.glb",
+  "clip": "Idle",
   "frames": 4,
   "out": "Assets/Plasma/Resources/Models/soldier.bytes",
   "tint": "none",
+  "note": "own model, made by tools/models/blender/soldier.py; helmet = team tint",
   "recolor": [
    {
     "near": [
-     0.39,
-     0.53,
-     0.83
+     0.25,
+     0.45,
+     0.95
     ],
-    "tol": 0.07,
+    "tol": 0.02,
     "to": [
      1,
      1,
@@ -23,60 +24,36 @@
    },
    {
     "near": [
-     0.35,
-     0.37,
-     0.755
-    ],
-    "tol": 0.05,
-    "to": [
-     0.13,
-     0.17,
-     0.4
-    ]
-   },
-   {
-    "near": [
-     0.475,
-     0.494,
-     0.588
-    ],
-    "tol": 0.04,
-    "to": [
-     0.2,
-     0.24,
-     0.42
-    ]
-   },
-   {
-    "near": [
-     0.38,
-     0.404,
-     0.494
-    ],
-    "tol": 0.04,
-    "to": [
      0.16,
-     0.19,
-     0.36
-    ]
+     0.3,
+     0.75
+    ],
+    "tol": 0.02,
+    "to": [
+     0.62,
+     0.62,
+     0.66
+    ],
+    "tint": 1
    }
   ]
  },
  {
   "name": "enemy",
-  "src": "tools/models/src/kenney_mini_male_a.glb",
-  "clip": "walk",
+  "src": "tools/models/src/plasma_enemy.glb",
+  "clip": "Walk",
   "frames": 6,
   "out": "Assets/Plasma/Resources/Models/enemy.bytes",
   "tint": "all",
+  "note": "own model, made by tools/models/blender/enemy.py; body = team tint",
   "recolor": [
    {
     "near": [
-     1,
-     0.69,
-     0.275
+     0.22,
+     0.12,
+     0.1
     ],
-    "tol": 0.06,
+    "tol": 0.02,
     "to": [
      0.2,
      0.1,
@@ -86,125 +63,41 @@
    },
    {
     "near": [
-     1,
-     0.651,
-     0.239
+     0.05,
+     0.03,
+     0.03
     ],
-    "tol": 0.06,
+    "tol": 0.02,
     "to": [
-     0.2,
-     0.1,
-     0.1
+     0.05,
+     0.03,
+     0.03
     ],
     "tint": 0
    },
    {
     "near": [
      1,
-     0.753,
-     0.325
+     1,
+     1
     ],
-    "tol": 0.06,
-    "to": [
-     0.2,
-     0.1,
-     0.1
-    ],
-    "tint": 0
-   },
-   {
-    "near": [
-     0.25,
-     0.25,
-     0.28
-    ],
-    "tol": 0.06,
-    "to": [
-     0.92,
-     0.92,
-     0.92
-    ],
-    "tint": 1
-   }
-  ]
- },
- {
-  "name": "boss",
-  "src": "tools/models/src/quaternius_matt.glb",
-  "clip": "Walk",
-  "frames": 8,
-  "out": "Assets/Plasma/Resources/Models/boss.bytes",
-  "tint": "none",
-  "mesh_scale": {
-   "Knife": 2.6
-  },
-  "recolor": [
-   {
-    "near": [
-     0.486,
-     0.306,
-     0.149
-    ],
-    "tol": 0.06,
-    "to": [
-     0.97,
-     0.74,
-     0.58
-    ]
-   },
-   {
-    "near": [
-     0.686,
-     0.424,
-     0.11
-    ],
-    "tol": 0.08,
+    "tol": 0.02,
     "to": [
      1,
      1,
      1
     ],
-    "tint": 1
-   },
-   {
-    "near": [
-     0.306,
-     0.412,
-     0.294
-    ],
-    "tol": 0.06,
-    "to": [
-     0.26,
-     0.36,
-     0.62
-    ]
-   },
-   {
-    "near": [
-     0.192,
-     0.145,
-     0.082
-    ],
-    "tol": 0.05,
-    "to": [
-     0.98,
-     0.66,
-     0.2
-    ]
-   },
-   {
-    "near": [
-     0.361,
-     0.361,
-     0.361
-    ],
-    "tol": 0.03,
-    "to": [
-     0.2,
-     0.2,
-     0.24
-    ]
+    "tint": 0
    }
   ]
+ },
+ {
+  "name": "boss",
+  "src": "tools/models/src/plasma_boss.glb",
+  "clip": "Walk",
+  "frames": 8,
+  "out": "Assets/Plasma/Resources/Models/boss.bytes",
+  "tint": "none",
+  "note": "own model, made by tools/models/blender/boss.py"
  }
 ]

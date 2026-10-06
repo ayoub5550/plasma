@@ -31,7 +31,7 @@ namespace Plasma
         Mesh[] _bossFrames;
         float _soldierFps, _enemyFps, _bossFps;
         // model scales (models are 1 unit tall)
-        const float SoldierModelH = 0.9f, EnemyModelH = 0.5f, BruteModelH = 0.66f, BossModelH = 3.3f, BigBossModelH = 4.1f;
+        const float SoldierModelH = 0.9f, EnemyModelH = 0.5f, BruteModelH = 0.66f, BossModelH = 3.9f, BigBossModelH = 4.8f;
         float EnemyModelMaxZ => QualityManager.High ? LodZ : 14f;
 
         InstancedBatch _soldiers, _enemies, _enemiesLod, _flames, _flameGlow, _puffs, _shadows, _tiles, _slats, _pieces, _sparks;
