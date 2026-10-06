@@ -131,9 +131,9 @@ def sample_pose(g, clip, t):
     return [G(i) for i in range(len(mats))]
 
 
-def color_for(g, prim, uv):
+def color_for(g, prim, uv, n):
     tex, factor = g.image(prim["material"]) if "material" in prim else (None, np.ones(4))
-    if tex is None or uv is None: return np.tile(factor, (len(uv) if uv is not None else 1, 1))
+    if tex is None or uv is None: return np.tile(factor, (n, 1))   # flat material colour (Blender-made models)
     h, w = tex.shape[:2]
     u = np.clip((uv[:, 0] % 1.0) * w, 0, w - 1).astype(int)
     v = np.clip((uv[:, 1] % 1.0) * h, 0, h - 1).astype(int)
@@ -164,7 +164,7 @@ def bake(cfg):
             nor = g.acc(a["NORMAL"])[:, :3] if "NORMAL" in a else np.zeros_like(pos)
             uv = g.acc(a["TEXCOORD_0"]) if "TEXCOORD_0" in a else None
             idx = g.acc(p["indices"])[:, 0].astype(np.int64) if "indices" in p else np.arange(len(pos))
-            col = color_for(g, p, uv)
+            col = color_for(g, p, uv, len(pos))
             sc = mesh_scale.get(mesh.get("name"), 1.0)
             prims.append(dict(node=ni, skin=n.get("skin"), pos=pos * sc, nor=nor, idx=idx, col=col,
                               joints=g.acc(a["JOINTS_0"]).astype(int) if "JOINTS_0" in a else None,
@@ -255,8 +255,8 @@ def palette(path):
     for n in g.j["nodes"]:
         if "mesh" not in n: continue
         for p in g.j["meshes"][n["mesh"]]["primitives"]:
-            uv = g.acc(p["attributes"]["TEXCOORD_0"])
-            c = (color_for(g, p, uv)[:, :3] * 255).round().astype(int)
+            uv = g.acc(p["attributes"]["TEXCOORD_0"]) if "TEXCOORD_0" in p["attributes"] else None
+            c = (color_for(g, p, uv, g.j["accessors"][p["attributes"]["POSITION"]]["count"])[:, :3] * 255).round().astype(int)
             u, k = np.unique(c, axis=0, return_counts=True)
             print(g.j["meshes"][n["mesh"]].get("name"))
             for col, cnt in sorted(zip(u.tolist(), k.tolist()), key=lambda x: -x[1])[:24]:
