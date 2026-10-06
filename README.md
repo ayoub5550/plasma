@@ -10,7 +10,7 @@
 - **الحشد الأحمر** يزحف على اليمين ومعه **زعيم** بسيف ضخم: أوقفه قبل أن يصل إليك. كل خامس مستوى زعيم عملاق.
 - 4 ترقيات دائمة، ووضع **بلا نهاية**، وواجهة **عربية وإنجليزية**، وإعدادات للأصوات والموسيقى والاهتزاز، وشرح تفاعلي في أول مستويين.
 
-الحالة: **v0.2.0** (نسخة تجريبية APK). خطة التطوير في [`docs/ROADMAP.md`](docs/ROADMAP.md)، وتصميم اللعبة في [`docs/GDD.md`](docs/GDD.md)، والمستويات والصعوبة في [`docs/LEVELS.md`](docs/LEVELS.md).
+الحالة: **v0.2.1** (نسخة تجريبية APK). خطة التطوير في [`docs/ROADMAP.md`](docs/ROADMAP.md)، وتصميم اللعبة في [`docs/GDD.md`](docs/GDD.md)، والمستويات والصعوبة في [`docs/LEVELS.md`](docs/LEVELS.md).
 **للمطورين ولوكلاء الذكاء الاصطناعي:** ابدأ بقراءة [`AGENTS.md`](AGENTS.md).
 
 ## English
@@ -40,7 +40,7 @@ tools/sandbox/setup_unity.sh                     # install Unity + Android toolc
 tools/simharness/run.sh 100 0.3                  # balance sweep (no Unity needed)
 tools/sandbox/unity.sh BuildAndroid Android      # → Builds/Plasma.apk
 ```
-Gameplay videos: [`docs/media/gameplay_v0.2.0_ar_level10.mp4`](docs/media/gameplay_v0.2.0_ar_level10.mp4) (Arabic UI, boss level) ·
-[`docs/media/gameplay_v0.2.0_en_level1.mp4`](docs/media/gameplay_v0.2.0_en_level1.mp4) (English UI, level 1 with tutorial hints)
+Gameplay videos: [`docs/media/gameplay_v0.2.1_ar_level10.mp4`](docs/media/gameplay_v0.2.1_ar_level10.mp4) (Arabic UI, boss level) ·
+[`docs/media/gameplay_v0.2.1_en_level1.mp4`](docs/media/gameplay_v0.2.1_en_level1.mp4) (English UI, level 1 with tutorial hints)
 
 © 2026 Ayoub Teke. All rights reserved. Font Lalezar © The Lalezar Project Authors, SIL OFL 1.1.

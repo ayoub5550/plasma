@@ -122,7 +122,7 @@ namespace Plasma.Sim
             // boss position inside the horde
             BossRadius = spec.BigBoss ? Balance.BigBossRadius : Balance.BossRadius;
             BossRow = Math.Max(2, (int)(rows * spec.BossDepth));
-            BossX = Balance.HordeCenterX + (float)(rng.NextDouble() - 0.5) * 1.2f;
+            BossX = Balance.HordeCenterX + (float)(rng.NextDouble() - 0.5) * 0.8f;
             BossZ = Balance.HordeStartZ + BossRow * Balance.HordeRowSpacing;
             for (int c = 0; c < cols; c++)
             {
@@ -138,7 +138,7 @@ namespace Plasma.Sim
                 {
                     if (_bossCol[c] && Math.Abs(row - BossRow) <= clearRows) continue; // room for the boss
                     if (xs.Count >= spec.EnemyCount) break;
-                    xs.Add(Balance.HordeMinX + (c + 0.5f) * Balance.HordeColSpacing + (float)(rng.NextDouble() - 0.5) * 0.1f);
+                    xs.Add(Balance.HordeMinX + (c + 0.5f) * Balance.HordeColSpacing + (float)(rng.NextDouble() - 0.5) * 0.16f);
                     rs.Add(row); cs.Add(c); br.Add(row > 3 && rng.NextDouble() < spec.BruteFraction);
                 }
             int n = xs.Count;
@@ -305,7 +305,7 @@ namespace Plasma.Sim
             {
                 float front = AliveEnemies > 0 ? FrontZ() : float.PositiveInfinity;
                 if (BossAlive && !_bossStopped) front = Math.Min(front, BossZ);
-                float boost = front > 11f ? Math.Min(3.5f, 1f + (front - 11f) * 0.3f) : 1f;
+                float boost = front > 8.5f ? Math.Min(3.5f, 1f + (front - 8.5f) * 0.3f) : 1f;
                 return Spec.HordeSpeed * boost;
             }
         }
@@ -341,7 +341,7 @@ namespace Plasma.Sim
                 BossZ -= _march * dt;
                 if (BossZ <= BossStopZ) { BossZ = BossStopZ; _bossStopped = true; }
             }
-            if (!BossRevealed && BossZ < 19f)
+            if (!BossRevealed && BossZ < 16f)
             {
                 BossRevealed = true;
                 Events.Add(new SimEvent(SimEventType.BossRevealed, BossX, BossZ, (int)BossMaxHp));

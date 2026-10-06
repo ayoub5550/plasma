@@ -1,7 +1,7 @@
 # Plasma — Game Design Document
 
 > Working title **Plasma** (subtitle *Squad vs Horde*, Arabic: بلازما — الفرقة ضد الحشد). Portrait, one-finger, Android first.
-> Status: v0.2.0 — mechanic and look rebuilt to match the reference video (2026-10-06). Owner: Ayoub Teke.
+> Status: v0.2.1 — mechanic and look matched to the reference video; v0.2.1 closer camera/framing (2026-10-06). Owner: Ayoub Teke.
 
 ## 1. Pitch
 
@@ -23,12 +23,12 @@ and procedural. Never copy characters, logos or art from the reference.
 |---|---|---|
 | Camera | high, steep, portrait; deck at the bottom, two bridges to the horizon over a dark void | same (`BattleView.SetupCamera`) |
 | Left | conveyor of standing "+N" tiles sliding toward the player | same; tiles collected at the belt end (`BattleSim.StepConveyor`) |
-| Upgrade gate | puffy cushion in a dark slot; inflates, breaks, badge flies to the belt | same: inflate (ease-out-back), wobble on hit, deflate + pieces + ring badge |
+| Upgrade gate | puffy cushion in a dark slot; inflates from a cloth heap, collapses like cloth, badge flies to the belt | same: cloth heap → puff up → cushion (ease-out-back), wobble on hit, squash → wrinkled cloth sinking + pieces + ring badge |
 | Belt upgrade | all tiles change colour/value in a wave from the near end | same (`BattleView.TileValue`, wave 45 u/s) |
 | Tiers | grey +0, blue +1, green +5, yellow +99 | grey 0 · blue 1–2 · green 3–9 · cyan 10–24 · purple 25–60 · yellow 61–99 |
 | Collect | "+N" pops, soldiers jump into the squad | gold "+N" pop, up to 6 soldiers arc from the belt into the formation |
-| Horde | dense red carpet filling the right bridge | 14 columns, up to 2800 instanced enemies (LOD beyond z 21) |
-| Shooting | straight orange-yellow tracer streams | up to 9 parallel streams, sweeping between columns |
+| Horde | dense red carpet filling the right bridge | 14 tight columns (0.27 u), up to 2800 instanced enemies with jitter + faces (LOD beyond z 21) |
+| Shooting | straight orange-yellow tracer streams | up to 6 long flame streams, sweeping between columns |
 | Kills | white smoke clouds at the front | white smoke puffs (budgeted ~45/s) |
 | Boss | big brute with a giant sword inside the horde, HP bar + number, white flash on hit | same, original design (orange spiky hair, red jacket, black blade) |
 
@@ -42,7 +42,7 @@ and procedural. Never copy characters, logos or art from the reference.
 
 ### 3.1 Controls
 * Relative horizontal drag anywhere (`BattleView.HandleInput`). No tapping. Back = pause.
-* Squad slides at max 16 u/s, x ∈ [−3.05, 4.25].
+* Squad slides at max 16 u/s, x ∈ [−3.05, 3.5].
 
 ### 3.2 The three spots
 | Spot | Squad x | What happens |
@@ -52,9 +52,9 @@ and procedural. Never copy characters, logos or art from the reference.
 | **Horde lane** (right) | 0 … 4.25 | bullets kill the horde / boss |
 
 ### 3.3 Squad & shooting
-* Squad = an integer `Soldiers` (can reach thousands). Up to **50 soldiers are drawn**; the width of the
+* Squad = an integer `Soldiers` (can reach thousands). Up to **36 soldiers are drawn** in a tight cluster; the width of the
   formation is capped accordingly, so aiming matters at every size. The count is shown above the squad.
-* A volley every `0.2 s / FireRate`: total damage `Soldiers × 0.25 × Firepower`, split into up to 9
+* A volley every `0.2 s / FireRate`: total damage `Soldiers × 0.25 × Firepower`, split into up to 6
   parallel streams across the squad front. Streams shift by ⅓ spacing each volley so no column survives between them.
 * **Pierce:** a stream's damage carries on to the next enemy in the same column until spent → big squads carve deep notches.
 

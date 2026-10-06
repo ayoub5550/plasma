@@ -3,6 +3,7 @@
 | File | What |
 |---|---|
 | `reference_ad.mp4` | The ad video the owner supplied as the target (720x1280, 60 fps, 54 s). Third-party promotional material - **reference only**, never ship any of it. |
+| `compare_v0.2.1.png` | Side by side: the ad (left) vs Plasma v0.2.1 (right) at the same moment (jackpot gate). |
 | `reference_contact_sheet.png` | One frame every 2 s of the ad (generated with ffmpeg) for quick viewing. |
 
 ## What the ad shows (frame-by-frame analysis, 2026-10-06)

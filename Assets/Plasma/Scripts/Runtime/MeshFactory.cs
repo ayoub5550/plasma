@@ -178,6 +178,7 @@ namespace Plasma
         static readonly Color Tint90 = new Color(0.86f, 0.86f, 0.86f, 1);
         static readonly Color Boot = new Color(0.22f, 0.12f, 0.08f, 0f);
         static readonly Color Belt = new Color(0.95f, 0.75f, 0.3f, 0f);
+        static readonly Color Khaki = new Color(0.92f, 0.8f, 0.6f, 0f);
 
         static Mesh _soldier, _enemy, _enemyLod, _cube, _sphere, _flame, _boss, _pillow, _tile, _shadow, _ring, _piece, _rail;
 
@@ -188,10 +189,10 @@ namespace Plasma
             var b = new Builder();
             b.Box(new Vector3(-0.055f, 0.06f, 0), new Vector3(0.075f, 0.12f, 0.09f), Navy);
             b.Box(new Vector3(0.055f, 0.06f, 0), new Vector3(0.075f, 0.12f, 0.09f), Navy);
-            b.RoundedBox(new Vector3(0, 0.2f, 0), new Vector3(0.24f, 0.2f, 0.17f), 0.06f, Navy, 2);
+            b.RoundedBox(new Vector3(0, 0.21f, 0), new Vector3(0.25f, 0.22f, 0.18f), 0.06f, Khaki, 2);   // khaki jacket (reads at the cluster edge like the reference)
             b.Box(new Vector3(0, 0.12f, 0), new Vector3(0.25f, 0.03f, 0.18f), Belt);
-            b.Box(new Vector3(-0.14f, 0.2f, 0.04f), new Vector3(0.06f, 0.15f, 0.07f), Navy);
-            b.Box(new Vector3(0.14f, 0.2f, 0.06f), new Vector3(0.06f, 0.07f, 0.16f), Navy);
+            b.Box(new Vector3(-0.145f, 0.2f, 0.04f), new Vector3(0.06f, 0.15f, 0.07f), Khaki);
+            b.Box(new Vector3(0.145f, 0.2f, 0.06f), new Vector3(0.06f, 0.07f, 0.16f), Khaki);
             b.Sphere(new Vector3(0, 0.36f, 0.01f), new Vector3(0.105f, 0.1f, 0.1f), Skin, 8, 6);
             b.Sphere(new Vector3(0, 0.385f, -0.01f), new Vector3(0.135f, 0.12f, 0.14f), Tint, 10, 6, 0.42f); // helmet
             b.Cylinder(new Vector3(0, 0.36f, -0.01f), 0.14f, 0.025f, Tint90, 10);                          // helmet rim
@@ -215,6 +216,7 @@ namespace Plasma
             int lon = lod ? 6 : 9, lat = lod ? 4 : 6;
             b.Sphere(new Vector3(0, 0.19f, 0), new Vector3(0.16f, 0.13f, 0.15f), Tint90, lon, lat);
             b.Sphere(new Vector3(0, 0.33f, 0.01f), new Vector3(0.12f, 0.11f, 0.12f), Tint, lon, lat);
+            if (!lod) b.Sphere(new Vector3(0, 0.31f, 0.075f), new Vector3(0.075f, 0.07f, 0.06f), Skin, 7, 5);   // face (visible at the front edge)
             return b.Build(lod ? "EnemyLod" : "Enemy");
         }
 
@@ -270,6 +272,33 @@ namespace Plasma
             var tail = new Color(1f, 0.38f, 0.0f, 0f); var mid = new Color(1f, 0.62f, 0.05f, 0.95f); var head = new Color(1f, 0.97f, 0.65f, 1f);
             return t < 0.55f ? Color.Lerp(tail, mid, t / 0.55f) : Color.Lerp(mid, head, (t - 0.55f) / 0.45f);
         }, 8, 6), "Flame");
+
+        /// <summary>Deflated gate: a wrinkled cloth heap (tinted), unit footprint, ~0.3 tall in the middle.</summary>
+        public static Mesh Cloth => _cloth ??= BuildCloth();
+        static Mesh _cloth;
+        static Mesh BuildCloth()
+        {
+            const int NX = 22, NZ = 12;
+            var v = new List<Vector3>(); var c = new List<Color>(); var t = new List<int>();
+            for (int j = 0; j <= NZ; j++)
+                for (int i = 0; i <= NX; i++)
+                {
+                    float u = (float)i / NX - 0.5f, w = (float)j / NZ - 0.5f;
+                    float edge = Mathf.Clamp01(1 - Mathf.Pow(Mathf.Max(Mathf.Abs(u) * 2, Mathf.Abs(w) * 2), 3));
+                    float wr = Mathf.Sin(u * 23f + w * 5f) * 0.5f + Mathf.Sin(u * 9f - w * 17f + 1.3f) * 0.35f + Mathf.Sin(u * 37f + 2f) * 0.15f;
+                    float y = edge * (0.22f + 0.1f * wr) + 0.02f;
+                    v.Add(new Vector3(u * (1 + 0.08f * Mathf.Sin(w * 9f)), y, w)); c.Add(Tint);
+                }
+            for (int j = 0; j < NZ; j++)
+                for (int i = 0; i < NX; i++)
+                {
+                    int a0 = j * (NX + 1) + i, a1 = a0 + 1, a2 = a0 + NX + 1, a3 = a2 + 1;
+                    t.Add(a0); t.Add(a2); t.Add(a1); t.Add(a1); t.Add(a2); t.Add(a3);
+                }
+            var m = new Mesh { name = "Cloth" };
+            m.SetVertices(v); m.SetColors(c); m.SetTriangles(t, 0); m.RecalculateNormals(); m.RecalculateBounds(); m.UploadMeshData(false);
+            return m;
+        }
 
         static Mesh Single(System.Action<Builder> f, string name) { var b = new Builder(); f(b); return b.Build(name); }
     }

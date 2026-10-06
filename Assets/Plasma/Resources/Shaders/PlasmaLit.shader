@@ -6,7 +6,7 @@ Shader "Plasma/Lit"
     Properties
     {
         _Color ("Tint", Color) = (1,1,1,1)
-        _Ambient ("Ambient", Color) = (0.44,0.46,0.56,1)
+        _Ambient ("Ambient", Color) = (0.47,0.475,0.52,1)
         _LightDir ("Light dir (world)", Vector) = (-0.3, 0.9, -0.35, 0)
         _Rim ("Rim strength", Range(0,1)) = 0.18
         _Spec ("Specular", Range(0,1)) = 0.35
