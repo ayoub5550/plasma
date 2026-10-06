@@ -2,8 +2,10 @@ namespace Plasma.Sim
 {
     public enum SimEventType
     {
-        Volley, EnemyKilled, EnemyHit, EnemyReachedSquad, GateHit, GateBroken, SoldiersGained, SoldiersLost,
-        BossSpawned, BossHit, BossKilled, BossBite, WaveStarted, Won, Lost
+        Volley, EnemyKilled, EnemyHit, EnemyReachedSquad,
+        GateHit, GateBroken, GateSpawned, ConveyorUpgraded, TileCaught, TileMissed,
+        SoldiersGained, SoldiersLost,
+        BossRevealed, BossHit, BossKilled, BossBite, WaveStarted, Won, Lost
     }
 
     /// <summary>Something the view/audio layer may want to react to. Cleared by the caller each frame.</summary>

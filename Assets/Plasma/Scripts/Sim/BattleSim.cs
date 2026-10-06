@@ -10,6 +10,15 @@ namespace Plasma.Sim
     /// <summary>
     /// The whole battle as a deterministic, engine-free simulation. The Unity layer only feeds
     /// input (TargetX) and draws the state; the balance sweep runs it thousands of times headless.
+    ///
+    /// Mechanic (as in the reference video):
+    ///  * the squad auto-fires straight ahead; the player only slides it left/right;
+    ///  * a conveyor of "+N" tiles slides toward the player on the left; standing next to the
+    ///    belt's end collects each arriving tile (+N soldiers);
+    ///  * an upgrade gate inflates in the dock; shooting it down upgrades every tile on the belt
+    ///    to the gate's value (+0 -> +1 -> +5 -> ... -> +99);
+    ///  * a red horde marches down the right lane with the boss walking inside it; every enemy
+    ///    that reaches the squad kills soldiers; the boss stops at the squad and keeps eating.
     /// </summary>
     public class BattleSim
     {
@@ -29,27 +38,38 @@ namespace Plasma.Sim
         public SimState State = SimState.Running;
 
         // ---- horde ----
-        public int EnemyCount;          // total in current wave
+        public int EnemyCount;
         public int AliveEnemies;
         public float[] EnemyX = new float[0];
         public int[] EnemyRow = new int[0];
+        public int[] EnemyCol = new int[0];
         public float[] EnemyHp = new float[0];
         public bool[] EnemyAlive = new bool[0];
         public bool[] EnemyBrute = new bool[0];
-        public float HordeStartZ;
         public float HordeTraveled;
-        int[][] _col;                    // enemy indices per column, front (lowest row) first
+        readonly float[] _colLag = new float[Balance.HordeColumns];   // rows behind a stopped boss lag behind
+        readonly bool[] _bossCol = new bool[Balance.HordeColumns];
+        int[][] _col;
         int[] _colFront;
+        float _hordeHpLeft, _hordeHpTotal;
 
-        // ---- gates ----
+        // ---- conveyor ----
+        public int ConveyorValue;        // value of every tile on the belt
+        public float ConvOffset = Balance.ConvSpacing; // distance of the next tile from the belt end
+        public int TileSerial;           // number of tiles that reached the end so far (tile k has id TileSerial + k)
+        public int TilesCaught;
+
+        // ---- dock gates ----
         public readonly List<GateSpec> Gates = new List<GateSpec>();
-        public int GateIndex;           // index of the gate in the slot
+        public int GateIndex;
         public float GateHp;
-        public float GateSlide;         // >0 while the next gate slides in (not shootable)
+        public float GateInflate;        // >0 while the current gate is inflating (not shootable)
 
         // ---- boss ----
-        public bool BossSpawned, BossAlive;
-        public float BossHp, BossMaxHp, BossZ, BossX;
+        public bool BossAlive, BossRevealed;
+        public float BossHp, BossMaxHp, BossZ, BossX, BossRadius;
+        public int BossRow;
+        bool _bossStopped;
         float _biteAcc;
 
         // ---- bullets / events ----
@@ -57,13 +77,13 @@ namespace Plasma.Sim
         public readonly List<SimEvent> Events = new List<SimEvent>(256);
         float _fireTimer;
         int _volley;
-        static float[] _fx, _fz;          // formation offsets (sunflower)
+        static float[] _fx, _fz;
 
         public BattleSim(LevelSpec spec, RunModifiers mods, bool endless = false)
         {
             Mods = mods; Endless = endless;
             Soldiers = MaxSoldiers = Math.Max(1, mods.StartSoldiers);
-            SquadX = TargetX = Balance.HordeCenterX;
+            SquadX = TargetX = 0.6f;
             BuildFormation();
             StartWave(spec);
         }
@@ -79,7 +99,7 @@ namespace Plasma.Sim
             {
                 double r = Balance.FormationSpacing * Math.Sqrt(i + 0.5) * 1.15;
                 double a = i * golden;
-                _fx[i] = (float)(r * Math.Cos(a)); _fz[i] = (float)(r * Math.Sin(a) * 0.8);
+                _fx[i] = (float)(r * Math.Cos(a)); _fz[i] = (float)(r * Math.Sin(a) * 0.85);
             }
         }
 
@@ -96,43 +116,79 @@ namespace Plasma.Sim
         {
             Spec = spec;
             var rng = new Random(spec.Seed);
-            int n = spec.EnemyCount;
-            EnemyCount = AliveEnemies = n;
-            EnemyX = new float[n]; EnemyRow = new int[n]; EnemyHp = new float[n]; EnemyAlive = new bool[n]; EnemyBrute = new bool[n];
             int cols = Balance.HordeColumns;
+            int rows = spec.Rows;
+
+            // boss position inside the horde
+            BossRadius = spec.BigBoss ? Balance.BigBossRadius : Balance.BossRadius;
+            BossRow = Math.Max(2, (int)(rows * spec.BossDepth));
+            BossX = Balance.HordeCenterX + (float)(rng.NextDouble() - 0.5) * 1.2f;
+            BossZ = Balance.HordeStartZ + BossRow * Balance.HordeRowSpacing;
+            for (int c = 0; c < cols; c++)
+            {
+                float cx = Balance.HordeMinX + (c + 0.5f) * Balance.HordeColSpacing;
+                _bossCol[c] = Math.Abs(cx - BossX) < BossRadius + 0.1f;
+                _colLag[c] = 0;
+            }
+            int clearRows = (int)Math.Ceiling(BossRadius / Balance.HordeRowSpacing);
+
+            var xs = new List<float>(); var rs = new List<int>(); var cs = new List<int>(); var br = new List<bool>();
+            for (int row = 0; row < rows; row++)
+                for (int c = 0; c < cols; c++)
+                {
+                    if (_bossCol[c] && Math.Abs(row - BossRow) <= clearRows) continue; // room for the boss
+                    if (xs.Count >= spec.EnemyCount) break;
+                    xs.Add(Balance.HordeMinX + (c + 0.5f) * Balance.HordeColSpacing + (float)(rng.NextDouble() - 0.5) * 0.1f);
+                    rs.Add(row); cs.Add(c); br.Add(row > 3 && rng.NextDouble() < spec.BruteFraction);
+                }
+            int n = xs.Count;
+            EnemyCount = AliveEnemies = n;
+            EnemyX = xs.ToArray(); EnemyRow = rs.ToArray(); EnemyCol = cs.ToArray(); EnemyBrute = br.ToArray();
+            EnemyHp = new float[n]; EnemyAlive = new bool[n];
             var lists = new List<int>[cols];
             for (int c = 0; c < cols; c++) lists[c] = new List<int>();
+            _hordeHpTotal = 0;
             for (int i = 0; i < n; i++)
             {
-                int c = i % cols, row = i / cols;
-                bool brute = rng.NextDouble() < spec.BruteFraction && row > 1;
-                EnemyBrute[i] = brute;
-                EnemyHp[i] = (brute ? Balance.BruteHp : Balance.GruntHp) * spec.EnemyHpScale;
+                EnemyHp[i] = (EnemyBrute[i] ? Balance.BruteHp : Balance.GruntHp) * spec.EnemyHpScale;
+                _hordeHpTotal += EnemyHp[i];
                 EnemyAlive[i] = true;
-                EnemyRow[i] = row;
-                EnemyX[i] = Balance.HordeMinX + (c + 0.5f) * Balance.HordeColSpacing + (float)(rng.NextDouble() - 0.5) * 0.12f;
-                lists[c].Add(i);
+                lists[EnemyCol[i]].Add(i);
             }
+            _hordeHpLeft = _hordeHpTotal;
             _col = new int[cols][]; _colFront = new int[cols];
             for (int c = 0; c < cols; c++) _col[c] = lists[c].ToArray();
-            HordeStartZ = spec.HordeStartZ;
             HordeTraveled = 0;
 
-            if (Gates.Count == 0 || GateIndex >= Gates.Count)
-            {
-                Gates.Clear(); GateIndex = 0;
-            }
-            Gates.AddRange(spec.Gates);
-            if (GateIndex < Gates.Count && GateHp <= 0) GateHp = Gates[GateIndex].Hp;
+            // gates: append this wave's ladder (endless keeps only gates that are an upgrade)
+            int best = ConveyorValue;
+            if (GateIndex < Gates.Count) best = Math.Max(best, Gates[Gates.Count - 1].Value);
+            bool wasEmpty = GateIndex >= Gates.Count;
+            foreach (var g in spec.Gates) if (g.Value > best) { Gates.Add(g); best = g.Value; }
+            if (wasEmpty && GateIndex < Gates.Count) SpawnGate();
 
-            BossSpawned = BossAlive = false; BossHp = BossMaxHp = spec.BossHp; _biteAcc = 0;
+            BossAlive = true; BossRevealed = false; _bossStopped = false;
+            BossHp = BossMaxHp = Math.Max(1, spec.BossHp); _biteAcc = 0;
             Events.Add(new SimEvent(SimEventType.WaveStarted, 0, 0, Wave));
         }
 
-        // ------------------------------------------------------------------ queries
-        public float EnemyZ(int i) => HordeStartZ + EnemyRow[i] * Balance.HordeRowSpacing - HordeTraveled;
+        void SpawnGate()
+        {
+            GateHp = Gates[GateIndex].Hp;
+            GateInflate = Balance.GateInflateTime;
+            Events.Add(new SimEvent(SimEventType.GateSpawned, Balance.DockX, Balance.DockZ, Gates[GateIndex].Value, GateIndex));
+        }
 
-        public bool GateAvailable => GateIndex < Gates.Count && GateSlide <= 0;
+        // ------------------------------------------------------------------ queries
+        public float EnemyZ(int i)
+        {
+            float z = Balance.HordeStartZ + EnemyRow[i] * Balance.HordeRowSpacing - HordeTraveled;
+            if (EnemyRow[i] > BossRow) z += _colLag[EnemyCol[i]];
+            return z;
+        }
+
+        public bool HasGate => GateIndex < Gates.Count;
+        public bool GateAvailable => GateIndex < Gates.Count && GateInflate <= 0;
         public GateSpec CurrentGate => Gates[GateIndex];
 
         /// <summary>Front-most alive enemy in a column, or -1.</summary>
@@ -157,18 +213,22 @@ namespace Plasma.Sim
             return best;
         }
 
+        public float HordeHpLeft => Math.Max(0, _hordeHpLeft);
         public float SquadDps => Soldiers * Balance.BaseDamage * Mods.DamageMult * Mods.FireRateMult / Balance.FireInterval;
+        public float BossStopZ => Balance.DefenseZ + BossRadius * 0.8f;
+        public bool SquadAtBelt => SquadX - SquadRadius <= Balance.ConvMaxX + Balance.CatchReach;
+        /// <summary>Squad x at which the belt end is reachable (collect position).</summary>
+        public float BeltX => Math.Max(Balance.SquadMinX, Balance.ConvMaxX + Balance.CatchReach + SquadRadius - 0.15f);
+        public int TileGain => ConveyorValue <= 0 ? 0 : Math.Max(1, (int)Math.Round(ConveyorValue * Mods.GateMult));
 
-        /// <summary>Progress 0..1 of the current level (horde + boss).</summary>
+        /// <summary>Progress 0..1 of the current level (horde + boss HP).</summary>
         public float Progress
         {
             get
             {
-                float total = Spec.HordeHpTotal + Math.Max(1, BossMaxHp);
-                float left = 0;
-                for (int i = 0; i < EnemyCount; i++) if (EnemyAlive[i]) left += EnemyHp[i];
-                left += BossSpawned ? Math.Max(0, BossHp) : BossMaxHp;
-                return 1f - left / total;
+                float total = _hordeHpTotal + BossMaxHp;
+                float left = Math.Max(0, _hordeHpLeft) + (BossAlive ? Math.Max(0, BossHp) : 0);
+                return total <= 0 ? 1 : 1f - left / total;
             }
         }
 
@@ -184,43 +244,11 @@ namespace Plasma.Sim
             float d = tx - SquadX;
             SquadX += Math.Abs(d) <= maxMove ? d : Math.Sign(d) * maxMove;
 
-            if (GateSlide > 0) GateSlide -= dt;
+            if (GateInflate > 0) GateInflate -= dt;
 
-            // horde advance + contact
-            if (AliveEnemies > 0)
-            {
-                HordeTraveled += Spec.HordeSpeed * dt;
-                for (int c = 0; c < Balance.HordeColumns; c++)
-                {
-                    int e;
-                    while ((e = ColumnFront(c)) >= 0 && EnemyZ(e) <= Balance.DefenseZ)
-                    {
-                        KillEnemy(e, false);
-                        int bite = EnemyBrute[e] ? Balance.BruteBite : Balance.GruntBite;
-                        LoseSoldiers(bite, EnemyX[e]);
-                        Events.Add(new SimEvent(SimEventType.EnemyReachedSquad, EnemyX[e], Balance.DefenseZ, bite, e));
-                    }
-                }
-            }
-
-            // boss
-            if (!BossSpawned && AliveEnemies == 0 && BossMaxHp > 0)
-            {
-                BossSpawned = BossAlive = true; BossZ = Balance.BossSpawnZ; BossX = Balance.HordeCenterX;
-                Events.Add(new SimEvent(SimEventType.BossSpawned, BossX, BossZ, (int)BossMaxHp));
-            }
-            if (BossAlive)
-            {
-                float stopZ = Balance.DefenseZ + Balance.BossRadius * 0.8f;
-                if (BossZ > stopZ) BossZ = Math.Max(stopZ, BossZ - Spec.BossSpeed * dt);
-                else
-                {
-                    _biteAcc += Spec.BossBiteRate * dt;
-                    int n = (int)_biteAcc;
-                    if (n > 0) { _biteAcc -= n; LoseSoldiers(n, BossX); Events.Add(new SimEvent(SimEventType.BossBite, BossX, BossZ, n)); }
-                }
-            }
-
+            StepConveyor(dt);
+            StepHorde(dt);
+            StepBoss(dt);
             if (State != SimState.Running) return;
 
             // shooting
@@ -228,7 +256,6 @@ namespace Plasma.Sim
             float interval = Balance.FireInterval / Mods.FireRateMult;
             while (_fireTimer <= 0) { _fireTimer += interval; FireVolley(); }
 
-            // bullets
             float bdz = Balance.BulletSpeed * dt;
             for (int i = Bullets.Count - 1; i >= 0; i--)
             {
@@ -239,13 +266,9 @@ namespace Plasma.Sim
             }
 
             // win / next wave
-            if (AliveEnemies == 0 && !BossAlive && (BossSpawned || BossMaxHp <= 0))
+            if (AliveEnemies == 0 && !BossAlive)
             {
-                if (Endless)
-                {
-                    Wave++;
-                    StartWave(LevelGenerator.Create(Wave));
-                }
+                if (Endless) { Wave++; StartWave(LevelGenerator.Create(Wave)); }
                 else
                 {
                     State = SimState.Won;
@@ -254,16 +277,97 @@ namespace Plasma.Sim
             }
         }
 
+        void StepConveyor(float dt)
+        {
+            ConvOffset -= Balance.ConvSpeed * dt;
+            while (ConvOffset <= 0)
+            {
+                ConvOffset += Balance.ConvSpacing;
+                if (SquadAtBelt)
+                {
+                    TilesCaught++;
+                    int gain = TileGain;
+                    Events.Add(new SimEvent(SimEventType.TileCaught, Balance.ConvX, Balance.ConvEndZ, gain, TileSerial));
+                    if (gain > 0) GainSoldiers(gain);
+                }
+                else Events.Add(new SimEvent(SimEventType.TileMissed, Balance.ConvX, Balance.ConvEndZ, ConveyorValue, TileSerial));
+                TileSerial++;
+            }
+        }
+
+        /// <summary>
+        /// Marching speed: the level's speed, but the horde (and boss) rush in while nothing is
+        /// near the deck, so there is no dead time once the front rows are cleared.
+        /// </summary>
+        public float MarchSpeed
+        {
+            get
+            {
+                float front = AliveEnemies > 0 ? FrontZ() : float.PositiveInfinity;
+                if (BossAlive && !_bossStopped) front = Math.Min(front, BossZ);
+                float boost = front > 11f ? Math.Min(3.5f, 1f + (front - 11f) * 0.3f) : 1f;
+                return Spec.HordeSpeed * boost;
+            }
+        }
+        float _march;
+
+        void StepHorde(float dt)
+        {
+            _march = MarchSpeed;
+            if (AliveEnemies <= 0) return;
+            float adv = _march * dt;
+            HordeTraveled += adv;
+            if (BossAlive && _bossStopped)
+                for (int c = 0; c < Balance.HordeColumns; c++) if (_bossCol[c]) _colLag[c] += adv;
+            for (int c = 0; c < Balance.HordeColumns; c++)
+            {
+                int e;
+                while ((e = ColumnFront(c)) >= 0 && EnemyZ(e) <= Balance.DefenseZ)
+                {
+                    KillEnemy(e, false);
+                    int bite = EnemyBrute[e] ? Balance.BruteBite : Balance.GruntBite;
+                    Events.Add(new SimEvent(SimEventType.EnemyReachedSquad, EnemyX[e], Balance.DefenseZ, bite, e));
+                    LoseSoldiers(bite, EnemyX[e]);
+                    if (State != SimState.Running) return;
+                }
+            }
+        }
+
+        void StepBoss(float dt)
+        {
+            if (!BossAlive) return;
+            if (!_bossStopped)
+            {
+                BossZ -= _march * dt;
+                if (BossZ <= BossStopZ) { BossZ = BossStopZ; _bossStopped = true; }
+            }
+            if (!BossRevealed && BossZ < 19f)
+            {
+                BossRevealed = true;
+                Events.Add(new SimEvent(SimEventType.BossRevealed, BossX, BossZ, (int)BossMaxHp));
+            }
+            if (_bossStopped)
+            {
+                _biteAcc += Spec.BossBiteRate * dt;
+                int n = (int)_biteAcc;
+                if (n > 0) { _biteAcc -= n; Events.Add(new SimEvent(SimEventType.BossBite, BossX, BossZ, n)); LoseSoldiers(n, BossX); }
+            }
+        }
+
+        /// <summary>One volley = up to MaxBulletsPerVolley parallel streams across the squad's front (straight lines like the reference).</summary>
         void FireVolley()
         {
             if (Soldiers <= 0) return;
-            int shooters = Math.Min(Soldiers, Balance.SoldierVisualCap);
             int nb = Math.Min(Soldiers, Balance.MaxBulletsPerVolley);
             float dmg = Soldiers * Balance.BaseDamage * Mods.DamageMult / nb;
+            float half = Math.Max(0f, SquadRadius - 0.25f);
+            float phase = nb > 1 ? ((_volley % 3) - 1) * (half / (nb - 1)) * 0.67f : 0f; // sweep between streams so no column survives
+            float front = Balance.SquadZ + SquadRadius * 0.7f + 0.2f;
             for (int k = 0; k < nb; k++)
             {
-                int s = (_volley * 7 + k * 13) % shooters;
-                Bullets.Add(new Bullet { X = SquadX + _fx[s], Z = Balance.SquadZ + 0.5f + _fz[s], Dmg = dmg });
+                float u = nb == 1 ? 0f : (float)k / (nb - 1) * 2f - 1f;
+                float jitter = (((_volley * 7 + k * 13) % 5) - 2) * 0.03f;
+                Bullets.Add(new Bullet { X = SquadX + u * half + phase + jitter, Z = front, Dmg = dmg });
             }
             _volley++;
             Events.Add(new SimEvent(SimEventType.Volley, SquadX, 0, nb));
@@ -272,71 +376,76 @@ namespace Plasma.Sim
         /// <summary>Applies the bullet's damage. Returns true if the bullet is spent.</summary>
         bool ResolveBullet(ref Bullet b)
         {
-            // gate lane
-            if (b.X >= Balance.GateMinX && b.X <= Balance.GateMaxX)
+            // dock lane: the upgrade gate
+            if (b.X >= Balance.DockMinX && b.X <= Balance.DockMaxX)
             {
-                if (GateIndex < Gates.Count && b.Z >= Balance.GateSlotZ - 0.3f)
+                if (HasGate && b.Z >= Balance.DockZ - 0.35f)
                 {
-                    if (GateSlide > 0) return true; // the incoming gate soaks it
+                    if (GateInflate > 0) return true; // the inflating gate soaks it
                     GateHp -= b.Dmg;
-                    Events.Add(new SimEvent(SimEventType.GateHit, b.X, Balance.GateSlotZ, 0, GateIndex));
+                    Events.Add(new SimEvent(SimEventType.GateHit, b.X, Balance.DockZ, 0, GateIndex));
                     if (GateHp <= 0) BreakGate();
                     return true;
                 }
                 return false;
             }
-            // horde lane
+            // horde lane (with the boss inside it)
             if (b.X >= Balance.HordeMinX && b.X < Balance.HordeMaxX)
             {
-                if (AliveEnemies > 0)
+                int c = (int)((b.X - Balance.HordeMinX) / Balance.HordeColSpacing);
+                if (c < 0) c = 0; if (c >= Balance.HordeColumns) c = Balance.HordeColumns - 1;
+                bool bossLane = BossAlive && Math.Abs(b.X - BossX) < BossRadius;
+                while (b.Dmg > 0.0001f)
                 {
-                    int c = (int)((b.X - Balance.HordeMinX) / Balance.HordeColSpacing);
-                    if (c < 0) c = 0; if (c >= Balance.HordeColumns) c = Balance.HordeColumns - 1;
-                    int e;
-                    while (b.Dmg > 0.0001f && (e = ColumnFront(c)) >= 0 && EnemyZ(e) <= b.Z + 0.15f)
-                    {
-                        if (b.Dmg >= EnemyHp[e]) { b.Dmg -= EnemyHp[e]; KillEnemy(e, true); }
-                        else { EnemyHp[e] -= b.Dmg; b.Dmg = 0; Events.Add(new SimEvent(SimEventType.EnemyHit, EnemyX[e], EnemyZ(e), 0, e)); }
-                    }
-                    if (b.Dmg <= 0.0001f) return true;
+                    int e = ColumnFront(c);
+                    float ez = e >= 0 ? EnemyZ(e) : float.PositiveInfinity;
+                    if (bossLane && b.Z >= BossZ - 0.45f && ez > BossZ - 0.2f) { HitBoss(ref b); return true; }
+                    if (e < 0 || ez > b.Z + 0.15f) break;
+                    if (b.Dmg >= EnemyHp[e]) { b.Dmg -= EnemyHp[e]; _hordeHpLeft -= EnemyHp[e]; KillEnemy(e, true); }
+                    else { EnemyHp[e] -= b.Dmg; _hordeHpLeft -= b.Dmg; b.Dmg = 0; Events.Add(new SimEvent(SimEventType.EnemyHit, EnemyX[e], ez, 0, e)); }
                 }
-            }
-            if (BossAlive && Math.Abs(b.X - BossX) < Balance.BossRadius && b.Z >= BossZ - 0.6f)
-            {
-                BossHp -= b.Dmg;
-                Events.Add(new SimEvent(SimEventType.BossHit, b.X, BossZ, (int)Math.Ceiling(Math.Max(0, BossHp))));
-                if (BossHp <= 0)
-                {
-                    BossAlive = false; Kills++;
-                    Events.Add(new SimEvent(SimEventType.BossKilled, BossX, BossZ));
-                }
-                return true;
+                return b.Dmg <= 0.0001f;
             }
             return false;
+        }
+
+        void HitBoss(ref Bullet b)
+        {
+            BossHp -= b.Dmg; b.Dmg = 0;
+            Events.Add(new SimEvent(SimEventType.BossHit, b.X, BossZ, (int)Math.Ceiling(Math.Max(0, BossHp))));
+            if (BossHp <= 0)
+            {
+                BossAlive = false; Kills++;
+                Events.Add(new SimEvent(SimEventType.BossKilled, BossX, BossZ));
+            }
         }
 
         void BreakGate()
         {
             var g = Gates[GateIndex];
-            int gain = (int)Math.Round(g.Value * Mods.GateMult);
-            Events.Add(new SimEvent(SimEventType.GateBroken, Balance.GateCenterX, Balance.GateSlotZ, gain, GateIndex));
-            if (gain > 0)
-            {
-                Soldiers += gain; MaxSoldiers = Math.Max(MaxSoldiers, Soldiers);
-                Events.Add(new SimEvent(SimEventType.SoldiersGained, SquadX, 0, gain));
-            }
+            ConveyorValue = g.Value;
+            Events.Add(new SimEvent(SimEventType.GateBroken, Balance.DockX, Balance.DockZ, g.Value, GateIndex));
+            Events.Add(new SimEvent(SimEventType.ConveyorUpgraded, Balance.ConvX, Balance.ConvEndZ, g.Value, TileSerial));
             GateIndex++;
-            if (GateIndex < Gates.Count) { GateHp = Gates[GateIndex].Hp; GateSlide = Balance.GateSlideTime; }
+            if (GateIndex < Gates.Count) SpawnGate();
+        }
+
+        void GainSoldiers(int n)
+        {
+            Soldiers += n; MaxSoldiers = Math.Max(MaxSoldiers, Soldiers);
+            Events.Add(new SimEvent(SimEventType.SoldiersGained, SquadX, 0, n));
         }
 
         void KillEnemy(int e, bool byPlayer)
         {
+            if (!byPlayer) _hordeHpLeft -= EnemyHp[e];
             EnemyAlive[e] = false; AliveEnemies--;
             if (byPlayer) { Kills++; Events.Add(new SimEvent(SimEventType.EnemyKilled, EnemyX[e], EnemyZ(e), EnemyBrute[e] ? 1 : 0, e)); }
         }
 
         void LoseSoldiers(int n, float x)
         {
+            if (State != SimState.Running) return;
             Soldiers -= n;
             Events.Add(new SimEvent(SimEventType.SoldiersLost, x, 0, n));
             if (Soldiers <= 0)

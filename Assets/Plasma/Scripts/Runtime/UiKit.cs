@@ -64,7 +64,7 @@ namespace Plasma
             var rt = Rect("Text", parent, Vector2.zero, Vector2.one);
             var t = rt.gameObject.AddComponent<Text>();
             t.font = Font; t.text = text; t.fontSize = size; t.color = color; t.alignment = anchor;
-            t.fontStyle = FontStyle.Bold; t.horizontalOverflow = HorizontalWrapMode.Overflow; t.verticalOverflow = VerticalWrapMode.Overflow;
+            t.fontStyle = FontStyle.Normal; t.horizontalOverflow = HorizontalWrapMode.Overflow; t.verticalOverflow = VerticalWrapMode.Overflow;
             t.raycastTarget = false;
             if (outline)
             {

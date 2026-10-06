@@ -7,12 +7,13 @@
 
 ## Listing copy (draft)
 **EN short:** Grow your squad, smash the horde, beat the boss — endless levels!
-**EN long:** Drag to aim. Shoot number gates to grow your army from 1 to hundreds of soldiers, then turn
-your firepower on the endless red horde before it reaches you. Every 5th level a giant boss blocks the bridge.
-Upgrade firepower, fire rate, starting squad and gate bonus. Infinite levels + Endless mode. Plays offline.
+**EN long:** Slide your squad, they shoot by themselves. Blast the upgrade gate to turn every tile on the
+conveyor into +1, +5 … +99, collect them to grow from 1 soldier to thousands, then turn your firepower on the
+endless red horde and the giant boss marching inside it. Upgrade firepower, fire rate, starting squad and tile
+bonus. Infinite levels + Endless mode. Arabic & English. Plays offline.
 
 **AR قصير:** كبّر فرقتك، احطم الحشد، واهزم الزعيم — مستويات لا نهائية!
-**AR طويل:** اسحب للتصويب. أطلق النار على بوابات الأرقام لتكبر جيشك من جندي واحد إلى المئات، ثم وجّه نيرانك نحو الحشد الأحمر قبل أن يصل إليك. كل خمسة مستويات يظهر زعيم عملاق. طوّر قوة النار وسرعة الإطلاق وعدد الجنود ومكافأة البوابات. مستويات لا نهائية ووضع بلا نهاية. تعمل بدون إنترنت.
+**AR طويل:** حرّك فرقتك وهي تطلق النار وحدها. فجّر بوابة الترقية لتتحول كل بطاقات الشريط إلى +1 و+5 حتى +99، واجمعها لتكبر من جندي واحد إلى الآلاف، ثم وجّه نيرانك نحو الحشد الأحمر والزعيم العملاق الذي يسير بداخله. طوّر قوة النار وسرعة الإطلاق وجنود البداية ومكافأة البطاقات. مستويات لا نهائية ووضع بلا نهاية. بالعربية والإنجليزية. تعمل بدون إنترنت.
 
 ## Required assets
 | Asset | Spec | Status |

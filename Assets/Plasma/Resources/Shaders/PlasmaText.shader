@@ -1,11 +1,16 @@
-// Text for world-space TextMesh labels (gate numbers, boss HP): font atlas alpha * colour, always on top of its own object.
+// Text for batched world-space labels (WorldText): font atlas alpha * vertex colour. _ZTest: LEqual (in world) or Always (overlay).
 Shader "Plasma/Text"
 {
-    Properties { _MainTex ("Font Texture", 2D) = "white" {} _Color ("Text Color", Color) = (1,1,1,1) }
+    Properties
+    {
+        _MainTex ("Font Texture", 2D) = "white" {}
+        _Color ("Text Color", Color) = (1,1,1,1)
+        [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 4
+    }
     SubShader
     {
         Tags { "Queue"="Transparent+10" "IgnoreProjector"="True" "RenderType"="Transparent" }
-        Lighting Off Cull Off ZWrite Off ZTest LEqual
+        Lighting Off Cull Off ZWrite Off ZTest [_ZTest]
         Blend SrcAlpha OneMinusSrcAlpha
         Pass
         {

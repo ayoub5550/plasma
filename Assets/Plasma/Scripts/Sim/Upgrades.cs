@@ -2,14 +2,14 @@ using System;
 
 namespace Plasma.Sim
 {
-    public enum UpgradeType { Firepower = 0, FireRate = 1, StartSquad = 2, GateBonus = 3 }
+    public enum UpgradeType { Firepower = 0, FireRate = 1, StartSquad = 2, TileBonus = 3 }
 
     /// <summary>Permanent upgrades bought with coins between runs.</summary>
     public static class Upgrades
     {
         public const int Count = 4;
-        public static readonly string[] NamesEn = { "Firepower", "Fire rate", "Start squad", "Gate bonus" };
-        public static readonly string[] NamesAr = { "قوة النار", "سرعة الإطلاق", "جنود البداية", "مكافأة البوابات" };
+        public static readonly string[] NamesEn = { "Firepower", "Fire rate", "Start squad", "Tile bonus" };
+        public static readonly string[] NamesAr = { "قوة النار", "سرعة الإطلاق", "جنود البداية", "مكافأة البطاقات" };
         static readonly int[] BaseCost = { 60, 60, 80, 70 };
 
         public static int Cost(UpgradeType u, int currentLevel)
@@ -31,7 +31,10 @@ namespace Plasma.Sim
         public int BestEndlessWave;
         public bool SoundOn = true;
         public bool VibrationOn = true;
+        public bool MusicOn = true;
         public bool Arabic = true;
+        public bool LangChosen;      // false = follow the device language
+        public bool TutorialDone;
 
         public int L(UpgradeType u) => Upg[(int)u];
 
@@ -50,13 +53,13 @@ namespace Plasma.Sim
             DamageMult = Upgrades.DamageMult(L(UpgradeType.Firepower)),
             FireRateMult = Upgrades.FireRateMult(L(UpgradeType.FireRate)),
             StartSoldiers = Upgrades.StartSoldiers(L(UpgradeType.StartSquad)),
-            GateMult = Upgrades.GateMult(L(UpgradeType.GateBonus)),
+            GateMult = Upgrades.GateMult(L(UpgradeType.TileBonus)),
         };
     }
 
     public struct RunModifiers
     {
-        public float DamageMult, FireRateMult, GateMult;
+        public float DamageMult, FireRateMult, GateMult; // GateMult multiplies conveyor tile values
         public int StartSoldiers;
         public static RunModifiers Default => new RunModifiers { DamageMult = 1, FireRateMult = 1, GateMult = 1, StartSoldiers = 1 };
     }

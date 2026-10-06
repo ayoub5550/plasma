@@ -14,15 +14,16 @@ Four layers, cheapest first.
 ```bash
 tools/simharness/run.sh 100 0.3                  # career sweep: casual bot
 tools/simharness/run.sh 100 1                    # expert bot
-tools/simharness/run.sh trace 44 1 12 12 11 11   # one level, per-second state (+ upgrade levels F R S G)
+tools/simharness/run.sh trace 44 1 12 12 11 11   # one level, per-second state (+ upgrade levels F R S T)
 ```
 The harness compiles `Assets/Plasma/Scripts/Sim/*.cs` + `tools/simharness/Program.cs` with Unity's bundled Mono
 (`UNITY_MONO` overrides the path). Output is Markdown — save sweeps to `docs/balance/`.
 `tools/simharness/run.sh levels` prints the generated-level table used in `docs/LEVELS.md §3`.
 
-Bot skill model (`BotPolicy`): reaction time `0.05 + 0.45·(1−skill)` s, safety margin noise, aim noise,
-probability `skill²` of considering a "dash" to a gate under pressure. It has perfect information, so
-real players are weaker than the same number suggests.
+Bot skill model (`BotPolicy`): reaction time `0.06 + 0.5·(1−skill)` s, safety-margin and aim noise. It picks
+between the three spots (horde / dock / belt): breaks the gate when it fits before the horde arrives, collects
+while safe, takes short belt "dashes" under pressure when the tiles outweigh the expected bites, and grabs a
+burst of jackpot tiles. It has perfect information, so real players are weaker than the same number suggests.
 
 ## 2. Compile
 
@@ -38,7 +39,7 @@ tools/sandbox/capture.sh /tmp/cap 5 1800 0.9   # level 5, up to 1800 frames, bot
 ```
 The player runs under Xvfb + Mesa llvmpipe at 540×1170 with `Time.captureFramerate = 30`, so frames are
 deterministic regardless of render speed. Capture mode (`Game.Capture`, args `-plasmaCapture DIR
--plasmaLevel N -plasmaFrames N -plasmaSkill S -plasmaMenuFrames N`) records the menu, then a full bot-played
+-plasmaLevel N -plasmaFrames N -plasmaSkill S -plasmaMenuFrames N -plasmaLang en|ar`; env `PLASMA_LANG`, `MENU_FRAMES` in capture.sh) records the menu, then a full bot-played
 level including the result screen, then quits. Output: `frames/f00000.png…`, `gameplay.mp4`, `player.log`.
 
 Review: build a contact sheet and look at it —
@@ -53,9 +54,10 @@ Debug switches: `-plasmaNoInst` (skip instanced draws), `-plasmaNoUI` (hide canv
 | 1 | Install & launch | icon correct, splash, menu < 3 s |
 | 2 | FPS L1 / L30 / L60 / Endless wave 40 | ≥ 55 fps mid phone, ≥ 30 fps low phone, no hitches on gate break |
 | 3 | Drag feel | squad follows finger 1:1, no jitter, can reach both lane edges comfortably |
-| 4 | Readability | gate numbers readable at a glance; squad count readable |
+| 4 | Readability | gate + tile numbers readable at a glance; squad count readable; Arabic text joined correctly |
+| 4b | Mechanic clarity | a new player understands (with the hints) gate → belt upgrade → collect at the belt end |
 | 5 | Notch / safe area | HUD not under the notch or nav bar |
-| 6 | Audio | no clipping, shots not annoying after 2 min, mute persists |
+| 6 | Audio | no clipping, shots not annoying after 2 min, music loop seamless, sound/music toggles persist |
 | 7 | Haptics | short ticks only, can be disabled |
 | 8 | Pause / background | home button pauses, resume works, no lost progress |
 | 9 | Save | kill app → level, coins, upgrades persist |
@@ -68,3 +70,4 @@ Logs from a device: `adb logcat -s Unity`.
 * No audio output (FMOD runs on emulated output) — sounds are exercised but not heard.
 * llvmpipe ≠ phone GPU: capture proves correctness, not performance.
 * Touch input is not exercised by the bot (it sets `TargetX` directly).
+* Capture mode fixes `Time.deltaTime` (captureFramerate) but not `unscaledDeltaTime` — use `Time.deltaTime` for UI animations or they run at wall-clock speed in captures.
