@@ -20,14 +20,18 @@ Legend: ✅ done · 🟡 partly · ⬜ todo · 👤 needs the owner (accounts, m
 - ✅ Arabic + English UI (Lalezar font + own Arabic shaper), settings (sound, music, vibration, language), contextual tutorial (L1–2), synthesised music loop
 - ✅ Balance re-tuned with the new bot (100 levels, all skills)
 
-## M1.5 — "Feels great on a phone" (v0.3) — next
-- ⬜👤 Device test of v0.2.0 on 2–3 phones (low/mid/high). Record FPS, heat, touch feel. Fill `docs/TESTING.md §4` checklist.
+## M1.2 — Real art & lighting ✅ (v0.3.0, 2026-10-06)
+- ✅ CC0 3D characters (Kenney soldier/enemy, Quaternius boss) baked to instanced flipbooks with walk/idle animation
+- ✅ Real-time shadows + HDR bloom (High), blob shadows (Low); Settings → Graphics; auto pick + fps watchdog
+
+## M1.5 — "Feels great on a phone" (v0.4) — next
+- ⬜👤 Device test of v0.3.0 on 2–3 phones (High and Low) (low/mid/high). Record FPS, heat, touch feel. Fill `docs/TESTING.md §4` checklist.
 - ⬜ Difficulty: calibrate with real players — the bot wins everything first try (see `docs/LEVELS.md §4`)
-- ⬜ Performance: frame budget overlay (debug), verify 60 fps with 2800 enemies on a mid phone, quality toggle (enemy cap / LOD distance)
+- ⬜ Performance: frame budget overlay (debug), verify 60 fps with 2800 enemies on a mid phone, quality toggle ✅ v0.3 (extend Low: enemy cap / LOD distance if needed)
 - ⬜ Juice: coin fly-to-counter, walk cycle (squash) for horde & boss, screen-edge red flash on damage, tile "clack" on the belt
 - ⬜ Music: longer loops (menu, battle); volume sliders
 
-## M2 — Content & depth (v0.3)
+## M2 — Content & depth (v0.5)
 - ⬜ Enemy variety: runners (fast, low HP), shield bearers (block 1 column), bombers (explode on death → kill neighbours), flyers (skip the line)
 - ⬜ Gate variety: **×2 multiplier gates** (rare, purple), **negative gates** (−10, red: avoid), **charge gates** (value grows while you shoot them — the grey "+0 → +1" behaviour in the reference), **weapon gates** (switch to shotgun/laser for 10 s)
 - ⬜ Boss variety: 5 boss archetypes with one gimmick each (summoner, charger, shield phase, splitter, giant)

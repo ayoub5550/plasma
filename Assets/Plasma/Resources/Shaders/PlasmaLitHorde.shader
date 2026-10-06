@@ -1,10 +1,8 @@
+// Same as Plasma/Lit but without shadow passes (the 2800-unit horde: no shadow-map or depth-prepass cost).
 // Opaque, GPU-instanced, mobile-cheap lit shader with a glossy toy look.
 // Vertex colour = base colour; vertex alpha = how much the per-instance _Color tints it (1 = team colour, 0 = keep).
 // Distance fog toward the background colour gives the long bridges depth like the reference.
-// Shading uses the art-directed _LightDir (frontal, toy look); real-time shadows come from the scene's
-// directional light (QualityManager: on in High quality, off in Low) and are tinted by _ShadowTint.
-// The ShadowCaster pass makes objects cast shadows and appear in the camera depth texture.
-Shader "Plasma/Lit"
+Shader "Plasma/LitHorde"
 {
     Properties
     {
@@ -17,46 +15,41 @@ Shader "Plasma/Lit"
         _FogColor ("Fog colour", Color) = (0.05,0.09,0.16,1)
         _FogStart ("Fog start z", Float) = 45
         _FogEnd ("Fog end z", Float) = 150
-        _ShadowTint ("Shadow tint", Color) = (0.58,0.6,0.72,1)
     }
     SubShader
     {
         Tags { "RenderType"="Opaque" "Queue"="Geometry" }
         Pass
         {
-            Tags { "LightMode"="ForwardBase" }
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
             #pragma multi_compile_instancing
-            #pragma multi_compile_fwdbase nolightmap nodirlightmap nodynlightmap novertexlight
             #pragma target 3.0
             #include "UnityCG.cginc"
-            #include "AutoLight.cginc"
 
             struct appdata { float4 vertex : POSITION; float3 normal : NORMAL; float4 color : COLOR; UNITY_VERTEX_INPUT_INSTANCE_ID };
-            struct v2f { float4 pos : SV_POSITION; float3 n : TEXCOORD0; float3 wpos : TEXCOORD1; half4 col : COLOR; UNITY_SHADOW_COORDS(2) UNITY_VERTEX_INPUT_INSTANCE_ID };
+            struct v2f { float4 pos : SV_POSITION; float3 n : TEXCOORD0; float3 wpos : TEXCOORD1; fixed4 col : COLOR; UNITY_VERTEX_INPUT_INSTANCE_ID };
 
             UNITY_INSTANCING_BUFFER_START(Props)
                 UNITY_DEFINE_INSTANCED_PROP(fixed4, _Color)
                 UNITY_DEFINE_INSTANCED_PROP(float, _Flash)
             UNITY_INSTANCING_BUFFER_END(Props)
             fixed4 _Ambient; float4 _LightDir; float _Rim; float _Spec;
-            fixed4 _FogColor; float _FogStart; float _FogEnd; fixed4 _ShadowTint;
+            fixed4 _FogColor; float _FogStart; float _FogEnd;
 
             v2f vert (appdata v)
             {
-                v2f o; UNITY_INITIALIZE_OUTPUT(v2f, o); UNITY_SETUP_INSTANCE_ID(v); UNITY_TRANSFER_INSTANCE_ID(v, o);
+                v2f o; UNITY_SETUP_INSTANCE_ID(v); UNITY_TRANSFER_INSTANCE_ID(v, o);
                 o.pos = UnityObjectToClipPos(v.vertex);
                 o.n = UnityObjectToWorldNormal(v.normal);
                 o.wpos = mul(unity_ObjectToWorld, v.vertex).xyz;
                 fixed4 tint = UNITY_ACCESS_INSTANCED_PROP(Props, _Color);
-                o.col = half4(lerp(v.color.rgb, v.color.rgb * tint.rgb, v.color.a), 1);
-                UNITY_TRANSFER_SHADOW(o, float2(0, 0));
+                o.col = fixed4(lerp(v.color.rgb, v.color.rgb * tint.rgb, v.color.a), 1);
                 return o;
             }
 
-            half4 frag (v2f i) : SV_Target
+            fixed4 frag (v2f i) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(i);
                 float3 n = normalize(i.n);
@@ -66,34 +59,12 @@ Shader "Plasma/Lit"
                 float rim = pow(1 - saturate(dot(n, v)), 3) * _Rim;
                 float3 h = normalize(l + v);
                 float spec = pow(saturate(dot(n, h)), 24) * _Spec;
-                float atten = UNITY_SHADOW_ATTENUATION(i, i.wpos);
-                float3 c = i.col.rgb * (_Ambient.rgb + ndl * 0.6) + rim + spec * atten;
-                c *= lerp(_ShadowTint.rgb, float3(1, 1, 1), atten);
+                float3 c = i.col.rgb * (_Ambient.rgb + ndl * 0.6) + rim + spec;
                 c = lerp(c, float3(1,1,1), UNITY_ACCESS_INSTANCED_PROP(Props, _Flash));
                 float fog = saturate((i.wpos.z - _FogStart) / (_FogEnd - _FogStart));
                 c = lerp(c, _FogColor.rgb, fog * fog);
-                return half4(saturate(c), 1);   // never HDR: only Fx glows feed the bloom
+                return fixed4(c, 1);
             }
-            ENDCG
-        }
-        Pass
-        {
-            Tags { "LightMode"="ShadowCaster" }
-            CGPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag
-            #pragma multi_compile_instancing
-            #pragma multi_compile_shadowcaster
-            #include "UnityCG.cginc"
-            struct appdata { float4 vertex : POSITION; float3 normal : NORMAL; UNITY_VERTEX_INPUT_INSTANCE_ID };
-            struct v2f { V2F_SHADOW_CASTER; };
-            v2f vert (appdata v)
-            {
-                v2f o; UNITY_SETUP_INSTANCE_ID(v);
-                TRANSFER_SHADOW_CASTER_NORMALOFFSET(o)
-                return o;
-            }
-            float4 frag (v2f i) : SV_Target { SHADOW_CASTER_FRAGMENT(i) }
             ENDCG
         }
     }

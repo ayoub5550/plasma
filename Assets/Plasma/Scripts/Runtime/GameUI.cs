@@ -10,12 +10,12 @@ namespace Plasma
     /// <summary>All screens (menu, settings, HUD, hints, pause, result) built in code. Game.cs drives it. Strings come from Loc.</summary>
     public class GameUI : MonoBehaviour
     {
-        public Action OnPlay, OnEndless, OnNext, OnRetry, OnMenu, OnPause, OnResume, OnToggleSound, OnToggleMusic, OnToggleVibration, OnToggleLanguage;
+        public Action OnPlay, OnEndless, OnNext, OnRetry, OnMenu, OnPause, OnResume, OnToggleSound, OnToggleMusic, OnToggleVibration, OnToggleLanguage, OnToggleQuality;
         public Action<UpgradeType> OnBuy;
 
         RectTransform _safe, _menu, _hud, _pause, _result, _settings;
         Text _coins, _levelTitle, _bestEndless, _hudLevel, _hudCoins, _resultTitle, _resultStats, _resultCoins, _banner, _hint;
-        Text _setSound, _setMusic, _setVib, _setLang;
+        Text _setSound, _setMusic, _setVib, _setLang, _setQuality;
         Image _progressFill;
         RectTransform _bannerRt, _hintRt, _hintArrow;
         CanvasGroup _hintGroup;
@@ -172,10 +172,11 @@ namespace Plasma
             var card = UiKit.Box("Card", _settings, new Vector2(0.5f, 0.5f), new Vector2(0, 60), new Vector2(880, 1100));
             UiKit.Panel(card, Dark);
             Static(UiKit.Label(UiKit.Rect("T", card, new Vector2(0, 0.84f), new Vector2(1, 1)), "", 96, Color.white), "settings");
-            _setSound = Row(card, 0.66f, "sound", () => OnToggleSound?.Invoke());
-            _setMusic = Row(card, 0.5f, "music", () => OnToggleMusic?.Invoke());
-            _setVib = Row(card, 0.34f, "vibration", () => OnToggleVibration?.Invoke());
-            _setLang = Row(card, 0.18f, "language", () => OnToggleLanguage?.Invoke());
+            _setSound = Row(card, 0.70f, "sound", () => OnToggleSound?.Invoke());
+            _setMusic = Row(card, 0.57f, "music", () => OnToggleMusic?.Invoke());
+            _setVib = Row(card, 0.44f, "vibration", () => OnToggleVibration?.Invoke());
+            _setLang = Row(card, 0.31f, "language", () => OnToggleLanguage?.Invoke());
+            _setQuality = Row(card, 0.18f, "graphics", () => OnToggleQuality?.Invoke());
             Static(UiKit.Button(_settings, "Close", new Vector2(0.5f, 0.5f), new Vector2(0, -600), new Vector2(460, 130), "", 64, Green, () => ShowOnly(_menu)).Text, "close");
         }
 
@@ -193,9 +194,10 @@ namespace Plasma
             _setMusic.text = Loc.T(p.MusicOn ? "on" : "off");
             _setVib.text = Loc.T(p.VibrationOn ? "on" : "off");
             _setLang.text = Loc.Arabic ? Loc.T("lang_name") : "ENGLISH";
+            _setQuality.text = Loc.T(p.HighQuality ? "high" : "low");
         }
 
-        void ShowSettings() { ShowOnly(_settings); }
+        public void ShowSettings() { ShowOnly(_settings); }
         public bool SettingsOpen => _settings.gameObject.activeSelf;
         public void CloseSettings() { ShowOnly(_menu); }
 

@@ -1,7 +1,7 @@
 # Plasma — Game Design Document
 
 > Working title **Plasma** (subtitle *Squad vs Horde*, Arabic: بلازما — الفرقة ضد الحشد). Portrait, one-finger, Android first.
-> Status: v0.2.1 — mechanic and look matched to the reference video; v0.2.1 closer camera/framing (2026-10-06). Owner: Ayoub Teke.
+> Status: v0.3.0 — mechanic and look matched to the reference video; v0.2.1 closer framing; v0.3.0 CC0 3D characters, real shadows, bloom, graphics High/Low (2026-10-06). Owner: Ayoub Teke.
 
 ## 1. Pitch
 

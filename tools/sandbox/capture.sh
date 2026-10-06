@@ -1,7 +1,7 @@
 #!/bin/sh
 # Render real gameplay frames from the Linux player (no GPU: Xvfb + Mesa llvmpipe) and encode a video.
 # Usage: tools/sandbox/capture.sh <outdir> [level=4] [frames=900] [skill=0.9]
-# Env: PLASMA_LANG=en|ar (UI language), MENU_FRAMES=45.
+# Env: PLASMA_LANG=en|ar (UI language), MENU_FRAMES=45, PLASMA_EXTRA="extra player args" (e.g. -plasmaQuality low, -plasmaDamage 0.5, -plasmaSettings 1).
 # Needs Builds/linux/Plasma.x86_64 (tools/sandbox/unity.sh BuildLinux Linux64).
 # NOTE: -popupwindow is REQUIRED - with a normal window Unity waits forever for a window-manager resize
 #       event under Xvfb and renders exactly one frame.
@@ -13,7 +13,7 @@ export LP_NUM_THREADS=${LP_NUM_THREADS:-16}
 export LD_PRELOAD=${UNITY_ROOT:-/work/unity}/shim/libschedfix.so
 timeout 1800 xvfb-run -a -s "-screen 0 540x1170x24" "$ROOT/Builds/linux/Plasma.x86_64" \
   -screen-width 540 -screen-height 1170 -popupwindow -force-glcore -logFile "$OUT/player.log" \
-  -plasmaCapture "$OUT/frames" -plasmaLevel "$LEVEL" -plasmaFrames "$FRAMES" -plasmaSkill "$SKILL" -plasmaMenuFrames ${MENU_FRAMES:-45} -plasmaLang ${PLASMA_LANG:-en} >/dev/null 2>&1 || true
+  -plasmaCapture "$OUT/frames" -plasmaLevel "$LEVEL" -plasmaFrames "$FRAMES" -plasmaSkill "$SKILL" -plasmaMenuFrames ${MENU_FRAMES:-45} -plasmaLang ${PLASMA_LANG:-en} ${PLASMA_EXTRA} >/dev/null 2>&1 || true
 grep -a "\[Plasma\]\|Exception" "$OUT/player.log" | head -20
 N=$(ls "$OUT/frames" | wc -l)
 echo "frames: $N"

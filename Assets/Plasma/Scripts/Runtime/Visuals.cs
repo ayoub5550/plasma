@@ -9,11 +9,14 @@ namespace Plasma
         static Font _font;
 
         public static Material Lit => _lit ??= new Material(Shader.Find("Plasma/Lit")) { enableInstancing = true, name = "PlasmaLit" };
+        static Material _litHorde;
+        /// <summary>Lit without shadow passes: the horde (hundreds of units) never pays for shadow maps/depth.</summary>
+        public static Material LitHorde => _litHorde ??= new Material(Shader.Find("Plasma/LitHorde")) { enableInstancing = true, name = "PlasmaLitHorde" };
         public static Material FxAlpha => _fxAlpha ??= MakeFx(UnityEngine.Rendering.BlendMode.SrcAlpha, UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha, "FxAlpha", 1);
-        public static Material FxAdd => _fxAdd ??= MakeFx(UnityEngine.Rendering.BlendMode.SrcAlpha, UnityEngine.Rendering.BlendMode.One, "FxAdd", 0.6f);
+        public static Material FxAdd => _fxAdd ??= MakeFx(UnityEngine.Rendering.BlendMode.SrcAlpha, UnityEngine.Rendering.BlendMode.One, "FxAdd", 0.6f, 1f);
         static Material _fxSolid;
         /// <summary>Unshaded alpha blend that keeps saturated colours on a bright floor (tracers).</summary>
-        public static Material FxSolid => _fxSolid ??= MakeFx(UnityEngine.Rendering.BlendMode.SrcAlpha, UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha, "FxSolid", 0);
+        public static Material FxSolid => _fxSolid ??= MakeFx(UnityEngine.Rendering.BlendMode.SrcAlpha, UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha, "FxSolid", 0, 0.35f);
         /// <summary>Flat, unshaded alpha (blob shadows, badges): drawn before other transparents.</summary>
         public static Material FxFlat
         {
@@ -39,17 +42,17 @@ namespace Plasma
             }
         }
 
-        static Material MakeFx(UnityEngine.Rendering.BlendMode src, UnityEngine.Rendering.BlendMode dst, string name, float soft)
+        static Material MakeFx(UnityEngine.Rendering.BlendMode src, UnityEngine.Rendering.BlendMode dst, string name, float soft, float glow = 0)
         {
             var m = new Material(Shader.Find("Plasma/Fx")) { enableInstancing = true, name = name };
-            m.SetFloat("_SrcBlend", (float)src); m.SetFloat("_DstBlend", (float)dst); m.SetFloat("_Soft", soft);
+            m.SetFloat("_SrcBlend", (float)src); m.SetFloat("_DstBlend", (float)dst); m.SetFloat("_Soft", soft); m.SetFloat("_Glow", glow);
             return m;
         }
 
         static readonly MaterialPropertyBlock Mpb = new MaterialPropertyBlock();
 
         /// <summary>Creates a static coloured object from a procedural mesh.</summary>
-        public static GameObject Solid(string name, Mesh mesh, Vector3 pos, Vector3 scale, Color color, Transform parent, Quaternion? rot = null)
+        public static GameObject Solid(string name, Mesh mesh, Vector3 pos, Vector3 scale, Color color, Transform parent, Quaternion? rot = null, bool castShadows = false)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
@@ -58,7 +61,8 @@ namespace Plasma
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var r = go.AddComponent<MeshRenderer>();
             r.sharedMaterial = Lit;
-            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
+            r.shadowCastingMode = castShadows ? UnityEngine.Rendering.ShadowCastingMode.On : UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = true;   // only costs anything when QualityManager enables shadows
             SetColor(r, color);
             return go;
         }
