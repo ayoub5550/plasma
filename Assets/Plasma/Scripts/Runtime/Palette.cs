@@ -10,7 +10,7 @@ namespace Plasma
         public static readonly Color Enemy = new Color(0.93f, 0.1f, 0.09f);
         public static readonly Color Brute = new Color(0.58f, 0.04f, 0.09f);
         public static readonly Color BossJacket = new Color(0.86f, 0.13f, 0.12f);
-        public static readonly Color Deck = new Color(0.63f, 0.64f, 0.7f);
+        public static readonly Color Deck = new Color(0.64f, 0.645f, 0.67f);
         public static readonly Color DeckSide = new Color(0.5f, 0.52f, 0.58f);
         public static readonly Color Rail = new Color(0.47f, 0.49f, 0.56f);
         public static readonly Color RailDark = new Color(0.3f, 0.32f, 0.38f);

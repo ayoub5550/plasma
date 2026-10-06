@@ -17,13 +17,13 @@ shoot the **upgrade gate** in the dock to upgrade every tile on the left **conve
 stand at the belt end to **collect** tiles (+N soldiers each), and stop the **red horde** with the **boss** walking
 inside it. Full design: `docs/GDD.md`. Difficulty: `docs/LEVELS.md`.
 
-Status **v0.2.0 (2026-10-06)** — "exactly like the video" rebuild, built and verified in the sandbox:
+Status **v0.2.1 (2026-10-06)** — "exactly like the video" rebuild + closer framing, built and verified in the sandbox:
 * New mechanic (dock gate → belt upgrade → collect), boss inside the horde, horde rush when nothing is near.
 * New look matched to the reference frame by frame: camera, palette, chibi soldiers, red carpet horde (2800 instanced + LOD),
   pillow gate (inflate/wobble/deflate), belt tiles with upgrade wave, brute boss with blade, flame tracers, smoke, blob shadows, fog.
 * Arabic + English UI (Lalezar OFL font + `ArabicText` shaper), settings (sound, music, vibration, language), tutorial hints on L1–2, synthesised music.
 * Balance re-tuned with the new bot: 100 levels, all bot skills win (too gentle → calibrate with players, `docs/LEVELS.md §4`).
-* Android APK `com.ayoubteke.plasma` 0.2.0 (code 2), min 24 / target 36, ARM64+ARMv7, ~17 MB, **debug-signed**.
+* Android APK `com.ayoubteke.plasma` 0.2.1 (code 3), min 24 / target 36, ARM64+ARMv7, ~17 MB, **debug-signed**.
 * **Not yet done:** physical-device test (performance/touch feel), difficulty calibration with humans, monetisation, store listing. See §8.
 
 ## 2. Repository map
@@ -87,6 +87,7 @@ tools/sandbox/unity.sh BuildAndroid Android      # → Builds/Plasma.apk (~3 min
 tools/sandbox/unity.sh BuildLinux Linux64        # → Builds/linux/Plasma.x86_64 (capture player)
 tools/sandbox/capture.sh /tmp/cap 5 1800 0.9     # real rendered gameplay: frames + gameplay.mp4 (~1 min)
 PLASMA_LANG=ar tools/sandbox/capture.sh /tmp/cap 10 2400 0.9   # same with the Arabic UI
+# camera tuning without rebuilding: add  -plasmaCam "px,py,pz,lx,ly,lz,halfWidth"  to the player command line (see BattleView.SetupCamera)
 PLASMA_VERSION=0.2.0 PLASMA_VERSION_CODE=2 tools/sandbox/unity.sh BuildAndroid Android   # versioned build
 ```
 Store build (`.aab`): set `PLASMA_KEYSTORE`, `PLASMA_KEYSTORE_PASS`, `PLASMA_KEYALIAS[_PASS]`, run `BuildAndroidStore`.
@@ -114,7 +115,7 @@ Before every push: (1) `tools/simharness/run.sh 100 0.3` — no new walls; (2) `
 
 ## 8. What to do next (priority order) — see `docs/ROADMAP.md` for the full plan
 
-1. **Device test v0.2.0 APK** (owner): FPS with 2800 enemies + 100 tiles, touch feel (`BattleView.DragSensitivity`),
+1. **Device test v0.2.1 APK** (owner): FPS with 2800 enemies + 100 tiles, touch feel (`BattleView.DragSensitivity`),
    readability of tile/gate numbers, Arabic text, audio/music levels. Collect concrete notes.
 2. **Difficulty calibration:** the bot wins all 100 levels first try at every skill (`docs/LEVELS.md §4`). Use the
    levers listed there; add analytics hooks (attempts per level, time per level) once accounts exist.
@@ -126,6 +127,11 @@ Before every push: (1) `tools/simharness/run.sh 100 0.3` — no new walls; (2) `
 
 ## 9. Change log
 
+* **v0.2.1 (2026-10-06)** — owner said "not there yet": side-by-side review vs the ad (`docs/reference/compare_v0.2.1.png`) →
+  closer/lower camera (`-plasmaCam` override for tuning), dock + horde moved closer, bigger upright belt tiles + labels,
+  bigger gate with cloth heap/collapse (`MeshFactory.Cloth`), tight horde carpet (0.27 u columns, jitter, faces), compact
+  tall squad (36 drawn, khaki jackets), 6 long flame streams, tile/gate shadows, neutral grey deck. Remaining gaps vs the ad:
+  character model quality (needs real 3D art), bloom/real shadows.
 * **v0.2.0 (2026-10-06)** — "exactly like the video": new mechanic (dock gate upgrades the conveyor, collect at the
   belt end, boss inside the horde, horde rush), full visual rebuild (camera, palette, meshes, pillow gate, belt tiles,
   flame tracers, smoke, shadows, fog, effects), `WorldText`, Arabic/English UI with own shaper + Lalezar font,

@@ -32,9 +32,11 @@ namespace Plasma
         float[] _enemyFlash = new float[0];
         float _bossFlash, _recoil, _shake, _gainPulse, _gateFlash, _gateWobble, _gateInflateT = 9, _muzzle;
         Vector3 _camBase; Quaternion _camRot;
+        static readonly Vector3 CamPos = new Vector3(-0.3f, 10.5f, -6.2f), CamLook = new Vector3(-0.3f, 0f, 7.4f);
+        float CamHalfWidth = 3.9f;   // world half-width visible at the squad line (z = 1)
 
         // gate collapse animation (the gate that was just broken)
-        int _collapseValue; float _collapseT = -1;
+        int _collapseValue; float _collapseT = -1, _inflateDur = Balance.GateInflateTime;
 
         // conveyor upgrade waves (visual): tiles convert from the belt end outward
         struct Wave { public float T; public int From, To; }
@@ -135,8 +137,18 @@ namespace Plasma
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = Palette.Background;
             cam.nearClipPlane = 0.5f; cam.farClipPlane = 260f;
-            _camBase = new Vector3(0.1f, 13.2f, -6.4f);
-            _camRot = Quaternion.LookRotation(new Vector3(0.1f, 0f, 8.6f) - _camBase);
+            // Framing matched to the reference ad: close, steep, the squad big at the bottom.
+            // Override for tuning: -plasmaCam "px,py,pz,lx,ly,lz,halfWidth"
+            Vector3 look = CamLook;
+            _camBase = CamPos;
+            var a = System.Environment.GetCommandLineArgs();
+            for (int i = 0; i < a.Length - 1; i++)
+                if (a[i] == "-plasmaCam")
+                {
+                    var f = Array.ConvertAll(a[i + 1].Split(','), x => float.Parse(x, System.Globalization.CultureInfo.InvariantCulture));
+                    _camBase = new Vector3(f[0], f[1], f[2]); look = new Vector3(f[3], f[4], f[5]); if (f.Length > 6) CamHalfWidth = f[6];
+                }
+            _camRot = Quaternion.LookRotation(look - _camBase);
             cam.transform.SetPositionAndRotation(_camBase, _camRot);
             FitFov();
         }
@@ -144,8 +156,8 @@ namespace Plasma
         void FitFov()
         {
             if (Cam == null) return;
-            float dist = Vector3.Distance(_camBase, new Vector3(0.1f, 0, 1.0f));
-            float halfW = 4.55f;
+            float dist = Vector3.Distance(_camBase, new Vector3(_camBase.x, 0, 1.0f));
+            float halfW = CamHalfWidth;
             float hFov = 2 * Mathf.Atan(halfW / dist);
             float vFov = 2 * Mathf.Atan(Mathf.Tan(hFov / 2) / Mathf.Max(0.3f, Cam.aspect)) * Mathf.Rad2Deg;
             Cam.fieldOfView = Mathf.Clamp(vFov, 40f, 80f);
@@ -216,7 +228,7 @@ namespace Plasma
                     _gateFlash = 1f; _gateWobble = Mathf.Max(_gateWobble, 0.5f);
                     if (UnityEngine.Random.value < 0.35f) AddSpark(new Vector3(e.X, R(0.3f, 1.1f), Balance.DockZ - 0.5f));
                     break;
-                case SimEventType.GateSpawned: _gateInflateT = 0; break;
+                case SimEventType.GateSpawned: _gateInflateT = _collapseT >= 0 ? -0.4f : 0f; _inflateDur = Balance.GateInflateTime + Mathf.Min(0, _gateInflateT); break;   // wait for the old cloth to sink
                 case SimEventType.GateBroken:
                 {
                     _collapseValue = e.Value; _collapseT = 0;
@@ -295,7 +307,7 @@ namespace Plasma
             _muzzle = Mathf.Max(0, _muzzle - dt * 14);
             _shake = Mathf.Max(0, _shake - dt * 1.5f);
             _gainPulse = Mathf.Max(0, _gainPulse - dt * 4f);
-            if (_collapseT >= 0) { _collapseT += dt; if (_collapseT > 0.45f) _collapseT = -1; }
+            if (_collapseT >= 0) { _collapseT += dt; if (_collapseT > 0.7f) _collapseT = -1; }
             for (int i = 0; i < _waves.Count; i++) { var w = _waves[i]; w.T += dt; _waves[i] = w; }
 
             for (int i = _puffList.Count - 1; i >= 0; i--)
@@ -371,7 +383,7 @@ namespace Plasma
 
             // ---- squad ----
             int n = Mathf.Min(sim.Soldiers, Balance.SoldierVisualCap);
-            float squadScale = 1.45f;
+            float squadScale = 1.5f;
             for (int i = 0; i < n; i++)
             {
                 BattleSim.FormationOffset(i, out float ox, out float oz);
@@ -381,8 +393,8 @@ namespace Plasma
                 if (arriving) continue;
                 var pos = new Vector3(sim.SquadX + ox, hop, Balance.SquadZ + oz - _recoil * 0.025f);
                 float glow = i >= n - 6 ? _gainPulse * 0.6f : 0;
-                _soldiers.Add(Matrix4x4.TRS(pos, Quaternion.identity, Vector3.one * squadScale), Palette.Squad, glow);
-                _shadows.Add(Matrix4x4.TRS(pos + new Vector3(0, 0.012f, 0.02f), Quaternion.identity, new Vector3(0.42f, 1, 0.38f)), new Color(0, 0, 0.05f, 0.35f));
+                _soldiers.Add(Matrix4x4.TRS(pos, Quaternion.identity, new Vector3(squadScale, squadScale * 1.35f, squadScale)), Palette.Squad, glow);
+                _shadows.Add(Matrix4x4.TRS(pos + new Vector3(0.1f, 0.012f, -0.06f), Quaternion.identity, new Vector3(0.5f, 1, 0.42f)), new Color(0, 0, 0.05f, 0.4f));
             }
             foreach (var a in _arrivals)
             {
@@ -400,10 +412,10 @@ namespace Plasma
             for (int i = 0; i < sim.EnemyCount; i++)
             {
                 if (!sim.EnemyAlive[i]) continue;
-                float z = sim.EnemyZ(i);
+                float z = sim.EnemyZ(i) + ((i * 7919) % 17 - 8) * 0.009f;   // visual jitter: a carpet, not a grid
                 if (z > DrawMaxZ) continue;
                 bool brute = sim.EnemyBrute[i];
-                float s = brute ? 1.45f : 1.0f;
+                float s = brute ? 1.55f : 1.18f;
                 float fl = i < _enemyFlash.Length ? Mathf.Max(0, _enemyFlash[i]) * 0.7f : 0;
                 if (z < LodZ)
                 {
@@ -438,7 +450,7 @@ namespace Plasma
             }
 
             // ---- conveyor: moving slats + tiles ----
-            var tileRot = Quaternion.Euler(28, 0, 0);
+            var tileRot = Quaternion.Euler(16, 0, 0);
             for (int k = 0; ; k++)
             {
                 float z = Balance.ConvEndZ + sim.ConvOffset + (k - 0.5f) * Balance.ConvSpacing;
@@ -454,8 +466,9 @@ namespace Plasma
                 int v = TileValue(z - Balance.ConvEndZ, out float flash);
                 var tp = new Vector3(Balance.ConvX, BeltTop, z);
                 float pop = 1 + flash * 0.18f;
-                _tiles.Add(Matrix4x4.TRS(tp, tileRot, new Vector3(1.22f * pop, 0.78f * pop, 0.2f)), Palette.Gate(v), flash * 0.8f);
-                if (z < 60f) _text.Add("+" + v, tp + tileRot * new Vector3(0, 0.4f, -0.12f), tileRot, 0.36f, Color.white, Palette.Outline, 0.1f);
+                _tiles.Add(Matrix4x4.TRS(tp, tileRot, new Vector3(1.62f * pop, 1.12f * pop, 0.24f)), Palette.Gate(v), flash * 0.8f);
+                if (z < 40f) _shadows.Add(Matrix4x4.TRS(new Vector3(tp.x + 0.12f, BeltTop + 0.01f, z - 0.45f), Quaternion.identity, new Vector3(1.6f, 1, 0.75f)), new Color(0, 0, 0.05f, 0.45f));
+                if (z < 60f) _text.Add("+" + v, tp + tileRot * new Vector3(0, 0.56f, -0.14f), tileRot, 0.56f, Color.white, Palette.Outline, 0.09f);
             }
             foreach (var f in _flyTiles)
             {
@@ -463,26 +476,32 @@ namespace Plasma
                 Vector3 p; Quaternion r; float s;
                 if (f.Caught) { p = Vector3.Lerp(f.A, f.B, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 0.8f; r = tileRot; s = 1 - k * 0.7f; }
                 else { p = new Vector3(f.A.x, f.A.y - 6f * k * k, f.A.z - 1.6f * k); r = tileRot * Quaternion.Euler(-160 * k, 0, 0); s = 1; }
-                _tiles.Add(Matrix4x4.TRS(p, r, new Vector3(1.22f * s, 0.78f * s, 0.2f * s)), Palette.Gate(f.Value), f.Caught ? 0.4f : 0);
+                _tiles.Add(Matrix4x4.TRS(p, r, new Vector3(1.62f * s, 1.12f * s, 0.24f * s)), Palette.Gate(f.Value), f.Caught ? 0.4f : 0);
             }
             _tiles.Flush();
 
             // ---- dock gate ----
-            if (sim.HasGate)
+            if (sim.HasGate && _gateInflateT >= 0)
             {
                 var g = sim.CurrentGate;
-                float t = _gateInflateT / Balance.GateInflateTime;
+                float t = _gateInflateT / _inflateDur;
                 float inflate = t >= 1 ? 1 : EaseOutBack(Mathf.Clamp01(t));
                 float wob = Mathf.Sin(time * 50) * _gateWobble * 0.05f;
                 float sy = Mathf.Lerp(0.12f, 1f, inflate) - wob, sx = Mathf.Lerp(1.12f, 1f, inflate) + wob;
                 var gp = new Vector3(Balance.DockX, 0, Balance.DockZ);
-                var gs = new Vector3(2.25f * sx, 1.3f * sy, 0.95f);
+                var gs = new Vector3(2.45f * sx, 1.55f * sy, 1.05f);
                 _mpb.Clear(); _mpb.SetColor("_Color", Palette.Gate(g.Tier)); _mpb.SetFloat("_Flash", _gateFlash * 0.45f);
-                Graphics.DrawMesh(MeshFactory.Pillow, Matrix4x4.TRS(gp, Quaternion.identity, gs), Visuals.Lit, 0, null, 0, _mpb);
+                if (t < 0.35f)   // still a cloth heap that starts to puff up
+                {
+                    float k = t / 0.35f;
+                    Graphics.DrawMesh(MeshFactory.Cloth, Matrix4x4.TRS(gp, Quaternion.identity, new Vector3(2.5f, 1f + 2.2f * k * k, 1.15f)), Visuals.Lit, 0, null, 0, _mpb);
+                }
+                else Graphics.DrawMesh(MeshFactory.Pillow, Matrix4x4.TRS(gp, Quaternion.identity, gs), Visuals.Lit, 0, null, 0, _mpb);
+                _shadows.Add(Matrix4x4.TRS(gp + new Vector3(0.15f, 0.03f, -0.35f), Quaternion.identity, new Vector3(gs.x * 1.05f, 1, 1.3f)), new Color(0, 0, 0.05f, 0.5f * inflate));
                 if (inflate > 0.5f)
                 {
-                    var labelRot = Quaternion.Euler(18, 0, 0);
-                    _text.Add("+" + g.Value, gp + new Vector3(0, 0.7f * sy, -0.68f), labelRot, 0.62f * sy, Color.white, Palette.Outline, 0.11f);
+                    var labelRot = Quaternion.Euler(8, 0, 0);
+                    _text.Add("+" + g.Value, gp + new Vector3(0, 0.8f * sy, -0.74f), labelRot, 0.95f * sy, Color.white, Palette.Outline, 0.09f);
                 }
                 if (sim.GateAvailable)
                 {
@@ -495,10 +514,19 @@ namespace Plasma
             }
             if (_collapseT >= 0)
             {
-                float k = _collapseT / 0.45f;
+                // burst: the cushion squashes, then lies as a wrinkled cloth that sinks into the slot
                 var gp = new Vector3(Balance.DockX, 0, Balance.DockZ);
-                _mpb.Clear(); _mpb.SetColor("_Color", Palette.Gate(_collapseValue)); _mpb.SetFloat("_Flash", Mathf.Max(0, 0.7f - k));
-                Graphics.DrawMesh(MeshFactory.Pillow, Matrix4x4.TRS(gp + new Vector3(0, 0, 0.2f * k), Quaternion.identity, new Vector3(2.25f * (1 + 0.25f * k), 1.3f * Mathf.Lerp(1f, 0.08f, Mathf.Sqrt(k)), 0.95f * (1 + 0.5f * k))), Visuals.Lit, 0, null, 0, _mpb);
+                _mpb.Clear(); _mpb.SetColor("_Color", Palette.Gate(_collapseValue)); _mpb.SetFloat("_Flash", Mathf.Max(0, 0.7f - _collapseT * 3f));
+                if (_collapseT < 0.15f)
+                {
+                    float k = _collapseT / 0.15f;
+                    Graphics.DrawMesh(MeshFactory.Pillow, Matrix4x4.TRS(gp, Quaternion.identity, new Vector3(2.45f * (1 + 0.2f * k), 1.55f * (1 - 0.75f * k), 1.05f * (1 + 0.3f * k))), Visuals.Lit, 0, null, 0, _mpb);
+                }
+                else
+                {
+                    float k = (_collapseT - 0.15f) / 0.55f;
+                    Graphics.DrawMesh(MeshFactory.Cloth, Matrix4x4.TRS(gp + new Vector3(0, -0.35f * k * k, 0.1f), Quaternion.identity, new Vector3(2.9f, 1.6f * (1 - 0.5f * k), 1.35f)), Visuals.Lit, 0, null, 0, _mpb);
+                }
             }
             foreach (var b in _badges)
             {
@@ -519,8 +547,8 @@ namespace Plasma
             foreach (var b in sim.Bullets)
             {
                 var bp = new Vector3(b.X, 0.36f, b.Z);
-                _flames.Add(Matrix4x4.TRS(bp, Quaternion.identity, new Vector3(0.15f, 0.15f, 1.5f)), Color.white);
-                _flameGlow.Add(Matrix4x4.TRS(bp + new Vector3(0, 0, 0.2f), Quaternion.identity, new Vector3(0.26f, 0.22f, 0.7f)), new Color(1f, 0.55f, 0.1f, 0.35f));
+                _flames.Add(Matrix4x4.TRS(bp, Quaternion.identity, new Vector3(0.13f, 0.13f, 1.8f)), Color.white);
+                _flameGlow.Add(Matrix4x4.TRS(bp + new Vector3(0, 0, 0.1f), Quaternion.identity, new Vector3(0.24f, 0.2f, 1.7f)), new Color(1f, 0.5f, 0.08f, 0.3f));
             }
             if (_muzzle > 0 && n > 0)
             {

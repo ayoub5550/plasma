@@ -23,18 +23,18 @@ deterministically (seed = N·7919+17).
 | Enemies | `1400 + 120·t` (×0.8 relief), rounded to 14 columns, cap 2800 then HP×√(n/2800) | `HordeBase, HordePerLevel` |
 | Enemy HP (grunt) | `1 + 0.14·t + 0.0008·t²` (brute = ×4) | `EnemyHpLin, EnemyHpQuad` |
 | Brute share | 0 % until L4, then `3 % + 0.6 %·(L−4)`, max 25 % | in code |
-| Horde speed | `min(0.6 + 0.012·t, 1.15)` u/s; **rushes** up to ×3.5 while nothing is within z 11 (no dead time) | `BattleSim.MarchSpeed` |
+| Horde speed | `min(0.6 + 0.012·t, 1.15)` u/s; **rushes** up to ×3.5 while nothing is within z 8.5 (no dead time) | `BattleSim.MarchSpeed` |
 | Jackpot (last gate value) | `Nice(min(99, (18 + 4·t)·(1.6 boss)·(0.85 relief)))` | `TopBase, TopPerLevel, TopExp` |
 | Gate ladder | `3 + min(3, L/8)` gates, geometric 1 → jackpot, snapped to 1,2,3,5,8,10,15,20,25,30,40,50,75,99 | in code |
 | Gate HP | `(4 + 9·(v − 1))·(1 + 0.06·t)` | `GateHp*` |
-| Conveyor | one tile every 1.15 u at 3.2 u/s ≈ **2.8 tiles/s**; tile = `round(value × TileBonus)` soldiers | `Balance.Conv*` |
-| Squad damage | 1.25 dps per soldier × Firepower × Fire rate; up to 9 parallel tracer streams | `Balance.FireInterval, BaseDamage` |
+| Conveyor | one tile every 1.3 u at 3.6 u/s ≈ **2.8 tiles/s**; tile = `round(value × TileBonus)` soldiers | `Balance.Conv*` |
+| Squad damage | 1.25 dps per soldier × Firepower × Fire rate; up to 6 parallel tracer streams | `Balance.FireInterval, BaseDamage` |
 | Boss HP | `max(30, 0.12 · horde HP)` (×3 on boss levels); walks inside the horde at 80 % depth (90 % boss level) | `BossHpMult, BigBossMult` |
 | Boss bite | `(6 + 0.4·L)` soldiers/s while touching the squad (×2 big boss) | in code |
 | Win reward | `(25 + 8·L)` (×2 boss level) `+ min(squad,1000)/5` | `BalanceSweep.WinReward` |
 | Loss reward | `BaseReward · 0.5 · progress` | `BalanceSweep.LossReward` |
 
-## 3. Generated levels (v0.2.0)
+## 3. Generated levels (v0.2.1)
 
 | Level | kind | enemies | enemy HP | brutes | speed | gates | gate ladder (value/HP) | boss HP | reward |
 |---|---|---|---|---|---|---|---|---|---|
@@ -61,12 +61,15 @@ deterministically (seed = N·7919+17).
 
 `tools/simharness/run.sh 100 <skill>` — full tables in `docs/balance/career_skill_*.md`.
 
-| Bot skill | Meaning | Result v0.2.0 |
+| Bot skill | Meaning | Result v0.2.1 |
 |---|---|---|
 | 1.0 | fast reactions, dashes under pressure | 100/100 first try |
-| 0.6 | good player | 100/100 first try |
-| 0.3 | casual | 100/100 first try |
-| 0.0 | very slow reactions | 100 levels, 101 attempts |
+| 0.6 | good player | 100 levels, ~100 attempts |
+| 0.3 | casual | 100 levels, ~109 attempts (occasional retries from L37) |
+| 0.0 | very slow reactions | 100 levels, ~168 attempts (retries from L37, max 5) |
+
+(v0.2.1 brought the dock and horde closer to the squad — `DockZ 9.6`, `HordeStartZ 11` — and narrowed the
+horde lane to 14 × 0.27 u, which made the game harder for slow players.)
 
 Typical level length for the bot: 25–45 s.
 
